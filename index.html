@@ -998,7 +998,7 @@ function startSet(team,x,y,o={}){
   G.poss=team; G.tackles=0; G.maxT=o.seven?7:6; G.stats[team].sets++; G.setErr=false; G.earlyKicked=false; G.contact=null; G.celebrate=null;
   endKickMenu(); G.queued=null; G.ts= team===1? G.ts:1;
   if(team===0) G.lineSpeed[1]=aiPickLS();
-  const go=()=>{ if(o.scrum) beginScrum(x,y); else beginPTB(x,y,null,{teleport:true}); if(o.label) banner(o.label,'small'); if(o.seven) floatTxt('7-TACKLE SET',{x,y}); };
+  const tap=o.seven||o.tap||o.label==='20M RESTART'; const go=()=>{ if(o.scrum) beginScrum(x,y); else beginPTB(x,y,null,{teleport:true,tap}); if(o.label) banner(o.label,'small'); if(o.seven) floatTxt('7-TACKLE SET',{x,y}); };
   if(team===1) openLS(x,y,go); else go();
 }
 const isFwd=pos=>pos==='PR'||pos==='HK'||pos==='LK';
@@ -1032,8 +1032,8 @@ function beginPTB(x,y,tackled,o={}){
   attackShape(x,y,d,dh,tackled,mode);
   // defence: marker at the ruck, line 10m back marking their opposite number, fullback deep
   const ly=capDef(y+d*10,d);
-  const fbD=D.find(p=>p.pos==='FB'&&!p.off)||D.find(p=>p.pos==='WG'&&!p.off), mk=D.find(p=>p.pos==='PR'&&!p.off)||D.find(p=>!p.off&&p!==fbD);
-  G.marker=mk; mk.mark=dh; mk.tx=x; mk.ty=capDef(y+d*1.5,d);
+  const fbD=D.find(p=>p.pos==='FB'&&!p.off)||D.find(p=>p.pos==='WG'&&!p.off), mk=o.tap?null:D.find(p=>p.pos==='PR'&&!p.off)||D.find(p=>!p.off&&p!==fbD);
+  G.marker=mk; if(mk){ mk.mark=dh; mk.tx=x; mk.ty=capDef(y+d*1.5,d); }
   const pairs={HK:'PR',LK:'LK',HB:'HB',FE:'FE',CE:'CE'};
   const dW=D.filter(p=>p.pos==='WG').sort((p,q)=>p.x-q.x), aW=A.filter(p=>p.pos==='WG').sort((p,q)=>p.lane-q.lane);
   const taken=new Set();
@@ -1446,12 +1446,13 @@ function gather(q){
     if((q.y-oppTry(q.team))*dirOf(q.team)>=0) return scoreTry(q);
     b.st='held'; b.h=q; b.kick=null; onReceive(q); reassign(G.poss,q); SFX.catch(); return;
   }
-  if((q.y-ownTry(q.team))*dirOf(q.team)<=0){
-    SFX.whistle(); banner('GROUNDED · 7-TACKLE SET'); G.celebrate=null;
+  if((q.y-ownTry(q.team))*dirOf(q.team)<=0&&k&&!k.bounced){
+    SFX.whistle(); banner('CAUGHT ON THE FULL · 7-TACKLE SET'); G.celebrate=null;
     return deadThen(1.4,()=>startSet(q.team,34,ownTry(q.team)+dirOf(q.team)*20,{seven:true,label:'20M RESTART'}));
   }
   if(!k) markError(posT);
-  SFX.catch(); changePossession(q.team,q,k?null:'TURNOVER');
+  const inG=(q.y-ownTry(q.team))*dirOf(q.team)<=0;
+  SFX.catch(); changePossession(q.team,q,inG?'RUN IT OUT':k?null:'TURNOVER');
 }
 function ballOut(){
   const b=G.ball, k=b.kick, x=b.x<0?0:FW, xs=b.x<34?20:FW-20;
