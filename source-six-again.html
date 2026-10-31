@@ -209,6 +209,13 @@ select.sel{font-family:var(--body);font-size:14px;background:#0e1914;color:var(-
 .preset small{font-size:11px;color:var(--muted);text-align:center;line-height:1.2}
 .preset:hover,.preset:focus-visible{border-color:var(--amber);outline:none}
 textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;line-height:1.3;resize:vertical;word-break:break-all}
+#tutBar{position:absolute;top:calc(48px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));background:rgba(6,12,9,.86);border:2px solid #000;padding:5px 8px;font-family:var(--display);font-size:10px;letter-spacing:.05em;color:var(--chalk);max-width:46vw}
+#tutBar em{color:var(--amber);font-style:normal}
+#tutBar .tp{display:flex;gap:3px;margin-top:4px}
+#tutBar .tp i{width:12px;height:6px;background:#2b3a32}
+#tutBar .tp i.on{background:var(--good)}
+#tipModal{align-items:center;z-index:30}
+#tipModal .panel{border-color:var(--amber)}
 #rotate{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--night);text-align:center;font-family:var(--display);color:var(--amber);font-size:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));z-index:50}
 #rotate .ph{width:34px;height:56px;border:3px solid var(--amber);animation:turn 1.6s steps(4) infinite}
 #rotate p{font-family:var(--body);color:var(--muted);font-size:14px;margin:0}
@@ -223,6 +230,7 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
 
   <div id="hud" hidden>
     <button id="pauseBtn" class="pxbtn ghost sm" aria-label="Pause">II</button>
+    <div id="tutBar" hidden></div>
     <div id="board">
       <span class="sw" id="swA"></span><span id="abA">---</span><b id="scA">0</b><i>:</i><b id="scB">0</b><span id="abB">---</span><span class="sw" id="swB"></span>
       <span id="clock">1ST 00:00</span>
@@ -250,6 +258,7 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
       <div class="homeGrid">
         <div class="homeTitle"><h1>SIX<br>AGAIN</h1><p>Rugby league, 9-a-side. Six tackles to make it count.</p><canvas id="homeKits" width="340" height="40"></canvas></div>
         <div class="homeMenu">
+          <button class="pxbtn big" id="hTut" type="button">TUTORIAL<small>ABOUT 3 MIN</small></button>
           <button class="pxbtn big" id="hResume" type="button" hidden>RESUME MATCH<small id="hResumeTxt"></small></button>
           <button class="pxbtn big" id="hQuick" type="button">QUICK MATCH</button>
           <button class="pxbtn big" id="hCareer" type="button">CAREER</button>
@@ -365,6 +374,23 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
       </div>
       <div class="tabs" id="chTabs" role="tablist"></div>
       <div id="chBody"></div>
+    </div>
+  </div>
+
+  <div class="overlay clear" id="tipModal" hidden>
+    <div class="panel" style="max-width:600px">
+      <p class="lbl" id="tipStep">COACH</p>
+      <h2 id="tipTitle">TIP</h2>
+      <p id="tipText"></p>
+      <div class="row" id="tipBtns"><span class="grow"></span></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="tutAsk" hidden>
+    <div class="panel" style="max-width:560px">
+      <h2>FIRST TIME?</h2>
+      <p>The tutorial is a practice match against a training squad. A coach pops up to show you each control: running, passing, stepping, passing from the ruck, kicking and defence. It takes about 3 minutes.</p>
+      <div class="row"><span class="grow"></span><button class="pxbtn ghost" id="tutSkip" type="button">SKIP, JUST PLAY</button><button class="pxbtn" id="tutGo" type="button">PLAY THE TUTORIAL</button></div>
     </div>
   </div>
 
@@ -675,7 +701,7 @@ function matchSnap(extra){
   return Object.assign(s,extra||{});
 }
 function saveMatch(extra){
-  if(!G.sides||!G.t[0]) return;
+  if(!G.sides||!G.t[0]||(G.opts&&G.opts.tutorial)) return;
   let s; try{ s=JSON.parse(JSON.stringify(matchSnap(extra))); }catch(e){ return; }
   store.set('match',s); MSAVE.pending=s; if(Date.now()-MSAVE.last>15000) flushMatch();
 }
@@ -710,6 +736,7 @@ function mkSquad(side,ti){
 const DIFFS=[['amateur','AMATEUR'],['pro','PRO'],['elite','ELITE'],['adaptive','ADAPTIVE']];
 let DIFF=store.get('diff','pro'), ADAPT=store.get('adapt',1);
 function diffL(){
+  if(G.opts&&G.opts.tutorial) return 0;
   if(DIFF==='amateur') return 0; if(DIFF==='elite') return 2; if(DIFF!=='adaptive') return 1;
   const live=G.t&&G.t[0]?clamp((G.score[0]-G.score[1])/40,-.3,.3):0; return clamp(ADAPT+live,0,2);
 }
@@ -763,7 +790,7 @@ function tickClock(dt){
 
 function newMatch(sA,sB,len,opts={}){
   clearMatchSave(); setupMatch(sA,sB,len,opts);
-  G.firstRecv=rnd()<.5?0:1; G.officials=mkOfficials();
+  G.firstRecv=opts.tutorial?0:rnd()<.5?0:1; G.officials=mkOfficials(); if(opts.tutorial) G.clockK=3;
   kickOff(G.firstRecv);
 }
 // ---- player match stats: tries, goals, field goals, runs, metres, line breaks, tackle busts, tackles, missed tackles, try assists, errors, penalties
@@ -777,6 +804,57 @@ function rateLine(s,won){ return s.t*8+s.ta*5+s.lb*4+s.tb*1.5+s.m/8+s.tk*.6-s.mt
 function matchVotes(){ // 3-2-1 from this match's stat lines
   const w0=G.score[0]>G.score[1], w1=G.score[1]>G.score[0];
   return Object.entries(G.ps||{}).map(([id,s])=>({id,r:rateLine(s,s.team===0?w0:w1)})).sort((a,b)=>b.r-a.r).slice(0,3).map(x=>x.id);
+}
+// ================================================================ TUTORIAL
+const TUT_STEPS=[
+  {id:'run',title:'RUN',text:'Put your left thumb anywhere on the left half of the screen and drag. Push up to run upfield; push further to sprint, which burns the stamina bar. Run 10 metres to tick this off.'},
+  {id:'pass',title:'PASS',text:'Swipe left or right on the right half of the screen to pass that way. A short swipe hits the nearest runner, a long swipe throws a cut-out. A quick flick is a flat pass; a slow swipe floats it. Complete a pass.'},
+  {id:'step',title:'BEAT YOUR MAN',text:'Tap the right half of the screen to side step. Hold left or right with your left thumb to pick the direction. Tap just as you’re hit to fend or bump off. Try a step.'},
+  {id:'early',title:'PASS FROM THE RUCK',text:'While your tackled player plays the ball, swipe left or right to call the pass early. Your hooker throws it the moment he picks it up. Do it now.'},
+  {id:'kick',title:'KICK',text:'You usually kick on the last tackle. Swipe up to kick: the yellow marker shows the kick and where it lands. A short swipe grubbers along the ground, a longer one punts it, and inside their 35 it’s a bomb.'},
+  {id:'defence',title:'DEFENCE',text:'When they have the ball you pick how fast your line comes up, then watch it play out. Passive holds shape, Medium is balanced, Aggressive rushes, and KILL hits hardest but gives away penalties. Pick one.'}
+];
+const TUT={on:false,done:{},shown:{},finishAt:0};
+function tutAll(){ return TUT_STEPS.every(s=>TUT.done[s.id]); }
+function tutShow(title,text,stepLabel,buttons){
+  G.paused=true; $('tipStep').textContent=stepLabel||'COACH'; $('tipTitle').textContent=title; $('tipText').textContent=text;
+  const row=$('tipBtns'); row.innerHTML='<span class="grow"></span>';
+  for(const [lab,cls,fn] of buttons||[['GOT IT','',()=>{}]]){ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'+cls; b.textContent=lab; b.onclick=()=>{ $('tipModal').hidden=true; G.paused=false; fn(); }; row.appendChild(b); }
+  joy.id=null; joy.x=joy.y=0; $('joy').hidden=true; gest=null; for(const k in keys) keys[k]=false;
+  $('tipModal').hidden=false;
+}
+function tutTip(id){ if(!TUT.on||TUT.shown[id]||TUT.done[id]) return false; const i=TUT_STEPS.findIndex(x=>x.id===id), st=TUT_STEPS[i]; TUT.shown[id]=true; tutShow(st.title,st.text,'COACH · '+(i+1)+' OF '+TUT_STEPS.length); return true; }
+function tutDone(id){ if(!TUT.on||TUT.done[id]) return; TUT.done[id]=true; const st=TUT_STEPS.find(x=>x.id===id);
+  G.floats.push({t:'✓ '+st.title,x:34,y:G.cam.y+3,life:1.6}); SFX.blip(); syncTutBar(); if(tutAll()) TUT.finishAt=performance.now()+9000; }
+function syncTutBar(){ const b=$('tutBar'); if(!TUT.on){ b.hidden=true; return; } b.hidden=false; const n=TUT_STEPS.filter(s=>TUT.done[s.id]).length, nx=TUT_STEPS.find(s=>!TUT.done[s.id]);
+  b.innerHTML=`TUTORIAL ${n}/${TUT_STEPS.length}${nx?' · NEXT: <em>'+nx.title+'</em>':' · <em>ALL DONE</em>'}<div class="tp">${TUT_STEPS.map(s=>'<i class="'+(TUT.done[s.id]?'on':'')+'"></i>').join('')}</div>`; }
+function tutTick(){
+  if(!TUT.on||G.paused||!$('tipModal').hidden) return;
+  const uc=userCar();
+  if(uc&&G.phase==='live'){
+    if(uc.runY!=null&&uc.y-uc.runY>=10) tutDone('run');
+    if(G.tackles>=G.maxT-1&&!TUT.done.kick){ if(tutTip('kick')) return; }
+    if(!TUT.done.run){ if(tutTip('run')) return; }
+    else if(!TUT.done.pass){ if(tutTip('pass')) return; }
+    else if(!TUT.done.step){ if(tutTip('step')) return; }
+    else if(!TUT.done.kick&&TUT.done.early){ if(tutTip('kick')) return; }
+  }
+  if(G.phase==='ptb'&&G.poss===0&&G.ptb.t>.25&&TUT.done.pass&&!TUT.done.early){ if(tutTip('early')) return; }
+  if(tutAll()&&(performance.now()>TUT.finishAt||(G.poss===0&&G.phase==='ptb'&&TUT.done.defence&&performance.now()>TUT.finishAt-6000))) tutComplete();
+}
+function tutComplete(){
+  TUT.on=false; store.set('tutDone',true); syncTutBar(); SFX.goal();
+  const leave=f=>{ G.paused=false; closeModals(); G.phase='menu'; $('hud').hidden=true; G.t=[null,null]; G.all=[]; G.P=[[],[]]; f(); };
+  tutShow('TUTORIAL COMPLETE','That’s every control. Shape plays (front door and back door) come from the SHAPE button at the ruck, and HOW TO PLAY on the home screen has the full list. Pick a difficulty on the home screen: Amateur, Pro, Elite or Adaptive.','WELL DONE',
+    [['HOME',' ghost',()=>leave(showHome)],['CAREER',' ghost',()=>leave(()=>{ showHome(); openCareer(); })],['QUICK MATCH','',()=>leave(()=>{ showHome(); $('hQuick').click(); })]]);
+}
+function startTutorial(){
+  TUT.on=true; TUT.done={}; TUT.shown={}; TUT.finishAt=0;
+  const me=sideFromClub(clubs()[youI]), opp=clubs()[(youI+5)%clubs().length], base=sideFromClub(opp);
+  const soft=r=>({...r,id:'tut_'+r.id,r:Object.fromEntries(Object.entries(r.r).map(([k,v])=>[k,+(v*.82).toFixed(3)]))});
+  const them={...base,id:'tut',name:'Training Squad',abbr:'TRN',c1:'#8d988f',c2:'#ffb22e',c3:'#3b463f',pat:'band',style:'middle',starters:base.starters.map(soft),bench:base.bench.map(soft)};
+  $('home').hidden=true; $('menu').hidden=true; $('tutAsk').hidden=true; audio(); goFull();
+  newMatch(me,them,'std',{tutorial:true}); syncTutBar();
 }
 function setupMatch(sA,sB,len,opts={}){
   G.sides=[sA,sB]; G.opts=opts; G.len=len; G.golden=false; G.tryRecs=[[],[]]; G.ic=[0,0];
@@ -1057,7 +1135,7 @@ function endHalf(){
   if(G.half===2&&G.opts&&G.opts.final&&G.score[0]===G.score[1]&&!G.golden){
     G.golden=true; G.half=3; G.hooter=false; G.phase='dead'; banner('GOLDEN POINT'); for(const p of G.all) p.stam=Math.min(1,p.stam+.3);
     after(1.6,()=>kickOff(rnd()<.5?0:1)); return; }
-  const full=G.half>=2; if(full){ clearMatchSave(); adaptAfter(); } else saveMatch({half:2,clock:2400,hooterDone:false,kick:1-G.firstRecv,label:G.t[0].abbr+' '+G.score[0]+'–'+G.score[1]+' '+G.t[1].abbr+' · HALF TIME'}); showBreak(full);
+  const full=G.half>=2; if(full){ clearMatchSave(); if(!(G.opts&&G.opts.tutorial)) adaptAfter(); } else saveMatch({half:2,clock:2400,hooterDone:false,kick:1-G.firstRecv,label:G.t[0].abbr+' '+G.score[0]+'–'+G.score[1]+' '+G.t[1].abbr+' · HALF TIME'}); showBreak(full);
 }
 
 // ---------------------------------------------------------------- tackles
@@ -1169,7 +1247,7 @@ function updPass(dt){
   const pc=.995-P.err*.01-(P.flat?.005:0)-pr*.025-(1-q.r.han)*.02-Math.max(0,dd-1)*.02-(P.off?.04:0);
   if(rnd()>pc){ b.pass=null; bump(q,'err'); floatTxt(P.off?'LOOSE OFFLOAD':pr>=.5?'UNDER PRESSURE':P.err>.6||dd>1.3?'BAD PASS':'SPILLED IT',q); return turnover('KNOCK-ON',q.team,q.x,q.y); }
   if((b.y-P.fy)*dirOf(P.team)>.5){ if(rnd()<.8){ b.pass=null; bump(P.passer,'err'); return turnover('FORWARD PASS',P.team,b.x,b.y); } playOn(); }
-  b.st='held'; b.h=q; b.pass=null; onReceive(q); SFX.catch(); G.assist={rec:P.passer.rec,team:P.team,to:q.rec};
+  b.st='held'; b.h=q; b.pass=null; onReceive(q); SFX.catch(); if(P.team===0) tutDone('pass'); G.assist={rec:P.passer.rec,team:P.team,to:q.rec};
   if(P.sw){ q.burst=.6; floatTxt('INSIDE BALL',q);
     for(const z of G.P[1-q.team]){ if(hyp(z.x-q.x,z.y-q.y)<9&&Math.sign(z.vx)===Math.sign(P.pvx)&&Math.abs(z.vx)>1&&rnd()<.75){ z.bite=.4; z.biteX=z.x+Math.sign(P.pvx)*4; } } }
 }
@@ -1182,6 +1260,7 @@ function doDummy(c,side){
 
 // ---------------------------------------------------------------- kicks
 function launch(p,type,ax,ay,D){
+  if(p.team===0&&type!=='restart'&&type!=='touch') tutDone('kick');
   endRun(p,false);
   const b=G.ball, g=9.8; b.st='air'; b.h=null; b.pass=null; b.x=p.x+ax*.4; b.y=p.y+ay*.4; b.z=1;
   if(type==='grubber'){ const v=Math.sqrt(2*3.2*D); b.vx=ax*v; b.vy=ay*v; b.vz=1.4; b.z=.3; }
@@ -1303,6 +1382,7 @@ function startGoalKick(team,kind,x,spotY,done){
   G.goal={team,kind,label,x,spotY,depth,off,D,k,wind,half,stage:'aim',t:0,aim:0,pow:0,maxD:38+22*k.r.kick,done,
     A:Math.atan(3.4*2.8/D),w:2.0+D/28-k.r.kick*.8,crowd:mkCrowd()};
   G.phase='goal'; showHint('Tap to lock your aim');
+  if(TUT.on&&!TUT.shown.goal){ TUT.shown.goal=true; tutShow('GOAL KICK','A goal kick is two taps. Tap once to lock your aim as it swings across the posts, then tap again to set the power. Fill past the white line to reach, and allow for the wind.','COACH · BONUS'); }
 }
 function goalTap(){
   const g=G.goal; if(!g) return;
@@ -1479,7 +1559,7 @@ function evade(c,dirHint){
   for(const q of G.P[1-c.team]){ if(q.down>0) continue; const ah=(q.y-c.y)*d; if(ah<-.5) continue; const dd=hyp(q.x-c.x,q.y-c.y); if(dd<bd){ bd=dd; n=q; } }
   let kind='step';
   if(!dirHint&&n){ const dx=Math.abs(n.x-c.x), ah=(n.y-c.y)*d; if(dx>ah*.9) kind='goose'; }
-  c.stam=Math.max(0,c.stam-.05); c.cd=.4; SFX.step();
+  c.stam=Math.max(0,c.stam-.05); c.cd=.4; SFX.step(); if(c.team===0) tutDone('step');
   if(kind==='step'){
     const dir=dirHint||(n?(n.x>c.x?-1:1):1);
     c.step=.26; c.stepDir=dir; c.stepT=.45; c.move={k:'step',t:.32,dir};
@@ -1494,7 +1574,7 @@ function evade(c,dirHint){
 function onTap(){
   const c=userCar(); if(!c) return;
   const k=G.contact;
-  if(k){ if(k.t<.3&&!k.fend){ k.fend=true; breakTackle(c,k,false); } return; }
+  if(k){ if(k.t<.3&&!k.fend){ k.fend=true; breakTackle(c,k,false); tutDone('step'); } return; }
   const dir=Math.sign(joy.id!==null?joy.x:((keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0)));
   evade(c,dir);
 }
@@ -1606,7 +1686,7 @@ function stepLive(dt){
   if(f){ const ln=G.P[1-a].filter(p=>p.pos!=='FB'&&p.down<=0&&!p.off&&p.bite<=0&&!p.offside&&!(p.mHold>0)&&!p.drop).map(p=>[p,hyp(p.x-f.x,p.y-f.y)]).sort((x,y)=>x[1]-y[1]);
     for(let i=0;i<Math.min(2,ln.length);i++) if(ln[i][1]<(i===0?10:7)) G.chasers.push(ln[i][0]); }
   G.supporters=f?G.P[a].filter(p=>p!==f&&p.down<=0&&!(b.st==='pass'&&b.pass.to===p)).sort((p,q)=>hyp(p.x-f.x,p.y-f.y)-hyp(q.x-f.x,q.y-f.y)).slice(0,2):[];
-  if(G.queued&&a===0&&b.st==='held'&&b.h===G.ptb.dh&&G.playT>=.2){ const cl=G.queued; G.queued=null; userPass(cl); }
+  if(G.queued&&a===0&&b.st==='held'&&b.h===G.ptb.dh&&G.playT>=.2){ const cl=G.queued; G.queued=null; userPass(cl); tutDone('early'); }
   const air=b.st==='air'||b.st==='fg';
   for(const p of G.P[a]){ if(air){ airAI(p,dt); continue; } if(b.st==='held'&&b.h===p){ if(a===0) userRun(p,dt); else aiRun(p,dt,a,d); } else supportAI(p,dt,f,a,d); }
   if(G.phase!=='live') return;
@@ -1905,9 +1985,10 @@ function openLS(x,y,go){
   const cards=$('lsCards'); cards.innerHTML='';
   for(const k of ['passive','medium','aggressive','kill']){ const L=LS[k]; const b=document.createElement('button'); b.type='button'; b.className='card'+(G.lineSpeed[0]===k?' sel':'')+(k==='kill'?' killc':'');
     b.innerHTML=`<h3>${L.label.toUpperCase()}</h3>${st.counter===k?'<span class="tag">COUNTERS THEIR STYLE</span>':''}<ul>${L.pros.map(s=>`<li class="pro">${s}</li>`).join('')}${L.cons.map(s=>`<li class="con">${s}</li>`).join('')}</ul>`;
-    b.addEventListener('click',()=>{ audio(); G.lineSpeed[0]=k; G.pendingLS=null; $('lsModal').hidden=true; go(); });
+    b.addEventListener('click',()=>{ audio(); G.lineSpeed[0]=k; G.pendingLS=null; $('lsModal').hidden=true; tutDone('defence'); go(); });
     cards.appendChild(b); }
   $('lsModal').hidden=false;
+  if(TUT.on&&!TUT.shown.defence){ TUT.shown.defence=true; const i=TUT_STEPS.findIndex(x=>x.id==='defence'); const st=TUT_STEPS[i]; tutShow(st.title,st.text,'COACH · '+(i+1)+' OF '+TUT_STEPS.length); }
 }
 // breaks
 function statRows(){
@@ -1963,7 +2044,7 @@ $('pSheet').onclick=()=>{ shT=0; renderSheet(); $('sheetModal').hidden=false; };
 document.querySelectorAll('#shSeg button').forEach(b=>b.onclick=()=>{ shT=+b.dataset.t; renderSheet(); });
 $('shClose').onclick=()=>{ $('sheetModal').hidden=true; };
 function closeModals(){ ['lsModal','penModal','breakModal','howModal','sheetModal'].forEach(id=>$(id).hidden=true); G.goal=null; endKickMenu(); }
-function toMenu(){ closeModals(); G.phase='menu'; G.paused=false; $('hud').hidden=true; showHome(); G.t=[null,null]; G.all=[]; G.P=[[],[]]; G.cam.y=50; hideHint(); }
+function toMenu(){ if(TUT.on){ TUT.on=false; syncTutBar(); } $('tipModal').hidden=true; closeModals(); G.phase='menu'; G.paused=false; $('hud').hidden=true; showHome(); G.t=[null,null]; G.all=[]; G.P=[[],[]]; G.cam.y=50; hideHint(); }
 
 // ---------------------------------------------------------------- menu
 loadLeague();
@@ -2029,6 +2110,10 @@ $('bkYes').onclick=()=>{ const d=bkPending; if(!d) return; bkPending=null; $('bk
   ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
   const c=LEAGUE.career; bkMsg('Restored. '+(c?'Your career with '+LEAGUE.clubs[c.club].name+' (season '+c.season+') is ready under CAREER.':'Your clubs and players are back.')); openBackupOut(); };
 async function openBackupOut(){ try{ $('bkOut').value=await makeCode(); }catch(e){} }
+function syncTutBtn(){ const done=store.get('tutDone',false); const b=$('hTut'); b.className='pxbtn '+(done?'ghost':'big'); b.innerHTML=done?'TUTORIAL':'TUTORIAL<small>ABOUT 3 MIN</small>'; }
+$('hTut').onclick=()=>{ SFX.blip(); startTutorial(); };
+$('tutGo').onclick=()=>{ G.pendingStart=null; startTutorial(); };
+$('tutSkip').onclick=()=>{ store.set('tutSkip',true); $('tutAsk').hidden=true; const f=G.pendingStart; G.pendingStart=null; if(f) f(); };
 $('hHow').onclick=()=>{ $('howModal').hidden=false; };
 $('howClose').onclick=()=>{ $('howModal').hidden=true; store.set('seenHow',true); if(G.pendingStart){ const f=G.pendingStart; G.pendingStart=null; f(); } };
 // full screen: works in most desktop and Android browsers; iPhone Safari has no full screen for pages, so point to Add to Home Screen
@@ -2060,14 +2145,14 @@ function goFull(){ if(!fsEl()&&fsCan()) enterFull(); }
 function startMatch(sA,sB,len,opts){
   audio(); goFull();
   const go=()=>newMatch(sA,sB,len,opts||{});
-  if(!store.get('seenHow',false)){ G.pendingStart=go; $('howModal').hidden=false; } else go();
+  if(!(opts&&opts.tutorial)&&!store.get('tutDone',false)&&!store.get('tutSkip',false)){ G.pendingStart=go; $('tutAsk').hidden=false; } else go();
 }
 $('startBtn').onclick=()=>{
   let o=oppI; if(o<0){ do{ o=Math.floor(rnd()*clubs().length); }while(o===youI); }
   $('menu').hidden=true; startMatch(sideFromClub(clubs()[youI]),sideFromClub(clubs()[o]),len,{});
 };
 $('qBack').onclick=()=>{ $('menu').hidden=true; showHome(); };
-function showHome(){ if(typeof syncDiff==='function') syncDiff(); ['menu','clubsModal'].forEach(id=>$(id).hidden=true); if($('careerHub')) $('careerHub').hidden=true; $('home').hidden=false; if(LEAGUE&&LEAGUE.career) pruneMatchSave(); syncResume(); drawHomeKits(); syncSaveNote(); }
+function showHome(){ if(typeof syncDiff==='function') syncDiff(); if(typeof syncTutBtn==='function') syncTutBtn(); ['menu','clubsModal'].forEach(id=>$(id).hidden=true); if($('careerHub')) $('careerHub').hidden=true; $('home').hidden=false; if(LEAGUE&&LEAGUE.career) pruneMatchSave(); syncResume(); drawHomeKits(); syncSaveNote(); }
 $('hResume').onclick=()=>{ const S=savedMatch(); if(!S) return syncResume(); if(!resumeMatch(S)){ $('saveNote').textContent='THAT MATCH HAS ALREADY BEEN PLAYED OR SIMMED, SO IT CAN\'T BE RESUMED'; } };
 $('hQuick').onclick=()=>{ audio(); SFX.blip(); $('home').hidden=true; syncMenu(); $('menu').hidden=false; };
 $('hClubs').onclick=()=>{ audio(); SFX.blip(); $('home').hidden=true; ceSel=youI; renderCE(); $('clubsModal').hidden=false; };
@@ -2152,7 +2237,7 @@ document.querySelectorAll('#ceTabs button').forEach(b=>b.onclick=()=>{ ceTab=b.d
 $('ceNo').onclick=()=>{ $('ceConfirm').hidden=true; };
 $('ceYes').onclick=()=>{ if(ceAction==='real'){ clubs().forEach((cl,i)=>{ if(PRESETS[i]) applyPreset(cl,PRESETS[i]); }); } else if(ceAction==='all'){ LEAGUE=genLeague(); } else { const old=clubs()[ceSel]; clubs()[ceSel]=genClub(ceSel); if(LEAGUE.career) clubs()[ceSel].players=old.players; }
   saveLeague(); $('ceConfirm').hidden=true; renderCE(); };
-syncMenu(); syncSound(); syncDiff(); syncFull(); drawHomeKits(); syncSaveNote(); syncResume(); initCloud();
+syncMenu(); syncSound(); syncDiff(); syncFull(); syncTutBtn(); drawHomeKits(); syncSaveNote(); syncResume(); initCloud();
 
 // ================================================================ CAREER
 const SEASON_LEN=17, SQUAD_MIN=13, SQUAD_MAX=16;
@@ -2821,7 +2906,7 @@ function frame(now){
     for(let i=0;i<n;i++) step(h);
   }
   if(G.phase!=='goal'&&G.phase!=='menu') G.cam.y=lerp(G.cam.y,camTarget(),1-Math.exp(-dt*5));
-  render(); hud();
+  render(); hud(); tutTick();
   requestAnimationFrame(frame);
 }
 if(document.fonts&&document.fonts.load){ document.fonts.load('8px Silkscreen').catch(()=>{}); }
