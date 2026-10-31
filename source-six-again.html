@@ -95,6 +95,8 @@ button{font:inherit;color:inherit}
 .club{display:flex;align-items:center;gap:8px;background:#0e1914;border:2px solid #000;padding:6px 7px;cursor:pointer;text-align:left;min-width:0}
 .club .kit{width:16px;height:20px;flex:none;border:1px solid #000;background:linear-gradient(90deg,var(--c1) 0 50%,var(--c2) 50% 100%)}
 .club span.nm{display:block;font-size:14px;line-height:1.1}
+.club .trate{display:block;font-size:11px;line-height:1.2;margin:1px 0}
+.club .trate .ovr{font-size:11px;margin-left:4px}
 .club small{display:block;font-family:var(--display);font-size:9px;color:var(--muted);letter-spacing:.04em}
 .club.you{border-color:var(--amber)}
 .club.opp{border-color:var(--alert)}
@@ -2153,8 +2155,9 @@ function renderClubs(){
   const g=$('clubGrid'); g.innerHTML='';
   clubs().forEach((c,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='club'+(i===youI?' you':'')+(i===oppI?' opp':'');
     b.style.setProperty('--c1',c.c1); b.style.setProperty('--c2',c.c2);
-    b.innerHTML='<span class="kit"></span><div><span class="nm"></span><small></small></div>';
+    b.innerHTML='<span class="kit"></span><div><span class="nm"></span><span class="trate"></span><small></small></div>';
     b.querySelector('.nm').textContent=c.name; b.querySelector('small').textContent=STYLES[c.style].short;
+    b.querySelector('.trate').innerHTML='<span class="stars">'+starStr(teamStars(c))+'</span><b class="ovr">'+Math.round(teamOvr(c))+'</b>';
     b.addEventListener('click',()=>{ audio(); SFX.blip(); kitOpp=null; if(picking==='you'){ youI=i; if(oppI===i) oppI=-1; picking='opp'; } else { oppI=(i===youI)?-1:i; } syncMenu(); });
     g.appendChild(b); });
 }
@@ -2171,7 +2174,8 @@ function syncKits(){
 document.querySelectorAll('#kitYou button').forEach(b=>b.onclick=()=>{ kitYou=b.dataset.k; syncKits(); });
 document.querySelectorAll('#kitOpp button').forEach(b=>b.onclick=()=>{ kitOpp=b.dataset.k; syncKits(); });
 function syncMenu(){
-  $('youName').textContent=clubs()[youI].name; $('oppName').textContent=oppI<0?'Random':clubs()[oppI].name; syncKits();
+  const rt=cl=>' <span class="stars" style="font-size:13px">'+starStr(teamStars(cl))+'</span><span class="ovr" style="font-size:14px">'+Math.round(teamOvr(cl))+'</span>';
+  $('youName').innerHTML=esc(clubs()[youI].name)+rt(clubs()[youI]); $('oppName').innerHTML=oppI<0?'Random':esc(clubs()[oppI].name)+rt(clubs()[oppI]); syncKits();
   $('pickYou').classList.toggle('on',picking==='you'); $('pickOpp').classList.toggle('on',picking==='opp');
   document.querySelectorAll('#lenSeg button').forEach(b=>b.classList.toggle('on',b.dataset.len===len));
   renderClubs(); store.set('you',youI); store.set('opp',oppI); store.set('len',len);
