@@ -752,7 +752,7 @@ function matchSnap(extra){
   const s={v:1,at:Date.now(),sides:G.sides,len:G.len,ctx:(G.opts&&G.opts.ctx)||null,
     score:[...G.score],half:G.half,clock:G.clock,poss:G.poss,tackles:G.tackles,maxT:G.maxT,x:G.ptb.x,y:G.ptb.y,kick:null,
     firstRecv:G.firstRecv,stats:G.stats,ps:G.ps,lineSpeed:[...G.lineSpeed],tryRecs:G.tryRecs,ic:G.ic,golden:!!G.golden,hooterDone:!!G.hooterDone,bench:G.bench,
-    players:G.P.map(T=>T.map(p=>({rec:p.rec,name:p.name,r:p.r,skin:p.skin,hair:p.hair,stam:+p.stam.toFixed(3),off:!!p.off,bin:!!p.bin,binT:p.binT||0,hurt:!!p.hurt}))),hurt:G.hurt,sent:G.sent,
+    players:G.P.map(T=>T.map(p=>({rec:p.rec,body:p.body,name:p.name,r:p.r,skin:p.skin,hair:p.hair,stam:+p.stam.toFixed(3),off:!!p.off,bin:!!p.bin,binT:p.binT||0,hurt:!!p.hurt}))),hurt:G.hurt,sent:G.sent,
     label:G.t[0].abbr+' '+G.score[0]+'–'+G.score[1]+' '+G.t[1].abbr+' · '+fmtClock()};
   return Object.assign(s,extra||{});
 }
@@ -773,7 +773,7 @@ function resumeMatch(S){
   setupMatch(S.sides[0],S.sides[1],S.len,opts);
   Object.assign(G,{score:[...S.score],half:S.half,clock:S.clock,stats:S.stats,lineSpeed:[...S.lineSpeed],tryRecs:S.tryRecs,ic:S.ic,golden:!!S.golden,hooterDone:!!S.hooterDone,bench:S.bench,firstRecv:S.firstRecv});
   G.officials=mkOfficials(); if(S.ps) G.ps=S.ps;
-  S.players.forEach((T,ti)=>T.forEach((d,k)=>{ const p=G.P[ti][k]; if(!p) return; Object.assign(p,{rec:d.rec,name:d.name,short:d.name.split(' ').slice(-1)[0],r:{...d.r},skin:d.skin,hair:d.hair,stam:d.stam,off:!!d.off,bin:!!d.bin,binT:d.binT||0,hurt:!!d.hurt}); }));
+  S.players.forEach((T,ti)=>T.forEach((d,k)=>{ const p=G.P[ti][k]; if(!p) return; Object.assign(p,{rec:d.rec,body:d.body||p.body,name:d.name,short:d.name.split(' ').slice(-1)[0],r:{...d.r},skin:d.skin,hair:d.hair,stam:d.stam,off:!!d.off,bin:!!d.bin,binT:d.binT||0,hurt:!!d.hurt}); }));
   G.hurt=S.hurt||[]; G.sent=S.sent||[];
   if(S.kick!=null){ kickOff(S.kick); }
   else { G.poss=S.poss; G.maxT=S.maxT||6; G.tackles=S.tackles; beginPTB(S.x,S.y,null,{teleport:true}); }
@@ -782,7 +782,7 @@ function resumeMatch(S){
 function onLeagueChanged(){ if(typeof syncMenu==='function') syncMenu(); drawHomeKits(); }
 function mkTeam(side){ return {id:side.id,name:side.name,abbr:side.abbr,c1:side.c1,c2:side.c2,c3:side.c3,pat:side.pat,style:side.style,rating:side.rating}; }
 function mkSquad(side,ti){
-  const mk=(rec,pos,num)=>({team:ti,pos,num,legend:!!rec.legend,name:rec.name,short:rec.name.split(' ').slice(-1)[0],r:{...rec.r},rec:rec.id,x:34,y:50,vx:0,vy:0,stam:1,down:0,anim:rnd()*4,skin:rec.skin,hair:rec.hair,
+  const mk=(rec,pos,num)=>({team:ti,pos,num,body:rec.pos||pos,legend:!!rec.legend,name:rec.name,short:rec.name.split(' ').slice(-1)[0],r:{...rec.r},rec:rec.id,x:34,y:50,vx:0,vy:0,stam:1,down:0,anim:rnd()*4,skin:rec.skin,hair:rec.hair,
     lane:34,depth:3,mark:null,bite:0,biteX:0,step:0,stepDir:1,stepT:0,burst:0,hold:0,rejoin:0,tx:34,ty:50,decT:0,dhDone:false,passTried:false,gapX:34,gapT:0,gapScore:0,cd:0});
   const sq=ORDER.map(([pos,num],k)=>mk(side.starters[k],pos,num));
   if(side.boost) for(const p of sq) for(const k in side.boost) p.r[k]=clamp(p.r[k]+side.boost[k],.2,.99);
@@ -993,7 +993,7 @@ function interchange(t,skip){
   const on=opts.sort((a,b)=>ovr(b.rec)-ovr(a.rec))[0]; const offRec=G.sides[t].starters.find(r=>r.id===tired.rec)||{id:tired.rec,name:tired.name,r:tired.r,pos:tired.pos,skin:tired.skin,hair:tired.hair};
   const offSt=tired.stam; const rec=on.rec;
   tired.name=rec.name; tired.short=rec.name.split(' ').slice(-1)[0]; tired.r={...rec.r}; if(G.sides[t].boost) for(const k in G.sides[t].boost) tired.r[k]=clamp(tired.r[k]+G.sides[t].boost[k],.2,.99);
-  tired.rec=rec.id; tired.skin=rec.skin; tired.hair=rec.hair; tired.stam=1; tired.hurt=false; tired.legend=!!rec.legend;
+  tired.rec=rec.id; tired.body=rec.pos||tired.pos; tired.skin=rec.skin; tired.hair=rec.hair; tired.stam=1; tired.hurt=false; tired.legend=!!rec.legend;
   on.rec=offRec; on.stam=offSt; G.ic[t]++; floatTxt('INTERCHANGE',tired);
 }
 function beginPTB(x,y,tackled,o={}){
@@ -1593,12 +1593,16 @@ function defAI(p,dt,f,a,d){
   if(p.mHold>0){ p.mHold-=dt; accel(p,0,0,dt); return; }
   if(p.bite>0){ p.bite-=dt; steer(p,p.biteX,p.y,mx*.6,dt); return; }
   const isFB=p.pos==='FB', ahead=(p.y-f.y)*d, dd=hyp(p.x-f.x,p.y-f.y);
-  if(G.chasers.includes(p)||dd<4.5||ahead<-.5||(isFB&&(dd<11||G.lbShown))){
+  if(G.chasers.includes(p)||dd<4.5||ahead<-.5||(isFB&&(dd<(Math.abs(f.x-34)>13?15:11)||G.lbShown))){
     const t=clamp(dd/(mx+.1),0,.6); steer(p,f.x+f.vx*t,f.y+f.vy*t,mx,dt,6); return; }
   if(p.drop&&!G.lbShown){ steer(p,p.dropX,capDef(f.y+d*p.drop,d),mx*.9,dt,4.5); return; }
-  if(isFB){ const dep=G.tackles>=G.maxT-1?Math.max(28,fbDepth(p.team)):fbDepth(p.team); steer(p,34+(f.x-34)*.6,capDef(f.y+d*dep,d),mx*.9,dt,4.5); return; }
+  if(isFB){ const wide=clamp((Math.abs(f.x-34)-8)/14,0,1), toTry=Math.abs(ownTry(p.team)-f.y);
+    let dep=G.tackles>=G.maxT-1?Math.max(28,fbDepth(p.team)):fbDepth(p.team); if(wide>0&&!(G.tackles>=G.maxT-1)) dep=lerp(dep,Math.min(dep,Math.max(6,toTry*.45)),wide);
+    steer(p,34+(f.x-34)*lerp(.6,.92,wide),capDef(f.y+d*dep,d),mx*(.9+wide*.1),dt,4.5+wide*1.5); return; }
+  if(G.slider===p){ // inside man sliding across to help the edge
+    const t=clamp(dd/(mx+.1),0,.5); steer(p,f.x+f.vx*t-Math.sign(f.x-34)*1.2,capDef(f.y+f.vy*t+d*1.2,d),mx,dt,5.5); return; }
   const m=p.mark||f; const w=clamp(1-(dd-3)/((G.lineSpeed[p.team]==='passive'?11:8)*(p.team===1?D3(.85,1.15,1.4):D3(1.15,1,1))),0,1);
-  let tx=m.x+Math.sign(f.x-m.x)*.8+(f.x-m.x)*.12;
+  const outward=Math.sign(f.vx)===Math.sign(f.x-34)&&Math.abs(f.vx)>1.5; let tx=m.x+Math.sign(f.x-m.x)*.8+(f.x-m.x)*(outward?.22:.12);
   let ty=d>0?Math.max(G.defLineY,m.y+1.3):Math.min(G.defLineY,m.y-1.3);
   tx+=(m.vx||0)*.35; tx=lerp(tx,f.x+f.vx*.3,w*.85); ty=lerp(ty,f.y+d*.8,w*.6);
   steer(p,clamp(tx,1,FW-1),capDef(ty,d),mx*(.95+w*.05),dt,5.5);
@@ -1782,7 +1786,11 @@ function stepLive(dt){
   if(f&&(b.st==='held'||b.st==='pass')) updLine(dt,f,a,d);
   G.chasers=[];
   if(f){ const ln=G.P[1-a].filter(p=>p.pos!=='FB'&&p.down<=0&&!p.off&&p.bite<=0&&!p.offside&&!(p.mHold>0)&&!p.drop).map(p=>[p,hyp(p.x-f.x,p.y-f.y)]).sort((x,y)=>x[1]-y[1]);
-    for(let i=0;i<Math.min(2,ln.length);i++) if(ln[i][1]<(i===0?10:7)) G.chasers.push(ln[i][0]); }
+    for(let i=0;i<Math.min(2,ln.length);i++) if(ln[i][1]<(i===0?10:7)) G.chasers.push(ln[i][0]);
+    // ball out wide: the next defender in slides across so the winger isn't left alone
+    G.slider=null; const side=Math.sign(f.x-34);
+    if(Math.abs(f.x-34)>11&&!G.lbShown){ const inside=ln.map(x=>x[0]).filter(p=>!G.chasers.includes(p)&&p.pos!=='WG'&&(p.x-f.x)*side<0&&Math.abs(p.x-f.x)<16); if(inside.length) G.slider=inside[0]; } }
+  else G.slider=null;
   G.supporters=f?G.P[a].filter(p=>p!==f&&p.down<=0&&!(b.st==='pass'&&b.pass.to===p)).sort((p,q)=>hyp(p.x-f.x,p.y-f.y)-hyp(q.x-f.x,q.y-f.y)).slice(0,2):[];
   if(G.queued&&a===0&&b.st==='held'&&b.h===G.ptb.dh&&G.playT>=.2){ const cl=G.queued; G.queued=null; userPass(cl); tutDone('early'); }
   const air=b.st==='air'||b.st==='fg';
@@ -1883,7 +1891,7 @@ const BUILD={
 };
 function drawPlayer(p,X,Y,s=1,ghost=false){
   const t=G.t[p.team]; const R=(x,y,w,h,c)=>{ ctx.fillStyle=c; ctx.fillRect(X+x*s,Y+y*s,w*s,h*s); };
-  const B=BUILD[p.pos]||BUILD.FE, mv=s===1&&p.move&&p.move.t>0?p.move:null;
+  const B=BUILD[p.body||p.pos]||BUILD.FE, mv=s===1&&p.move&&p.move.t>0?p.move:null;
   const L=-Math.floor(B.tw/2), Rt=L+B.tw-1, SL=-Math.floor(B.sw/2);
   if(!ghost) R(SL-1,-1,B.sw+2,2,'rgba(0,0,0,.3)');
   const lying=p.down>0||(G.phase==='ptb'&&p===G.ptb.tackled&&G.ptb.t<G.ptb.dur*.45)||(G.phase==='dead'&&G.ball.st==='ptb'&&G.ball.h===p);
