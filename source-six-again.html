@@ -315,7 +315,7 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
       <div class="how">
         <div><b>LEFT THUMB · RUN</b><p>Touch anywhere on the left and drag to steer. Push up to sprint, which burns stamina.</p></div>
         <div><b>RIGHT THUMB · PASS</b><p>Swipe left or right. Short swipe hits the nearest runner. Long swipe throws a cut-out over one or two players.</p></div>
-        <div><b>FLAT OR FLOATED</b><p>A quick flick throws a flat, fast pass that beats a rushing line but is harder to catch. A slow swipe floats it: easy to catch, easier to intercept.</p></div>
+        <div><b>PASSING SKILL</b><p>Good passers (high HAN) throw flat, fast balls that beat a rushing line and are hard to intercept. Poor passers loop it, giving defenders time to read it.</p></div>
         <div><b>SHAPE</b><p>Tap SHAPE at the ruck. Your halfback is first receiver. Swipe sideways to hit the front-door forward, or sideways and down to go out the back. With room on the open side you get a second shape further out, and your back-door player can do it again.</p></div>
         <div><b>TRICKS</b><p>Swipe against the way you're running for an inside ball. Swipe one way then back for a dummy. Swipe while being tackled to offload.</p></div>
         <div><b>TAP · BEAT YOUR MAN</b><p>Tap the right side to side step, or to goose step when a defender comes across at you. Hold a direction on the left thumb to choose your step. Tap just as you're hit to break the tackle. Backs fend, forwards bump off.</p></div>
@@ -868,7 +868,7 @@ function matchVotes(){ // 3-2-1 from this match's stat lines
 // ================================================================ TUTORIAL
 const TUT_STEPS=[
   {id:'run',title:'RUN',text:'Put your left thumb anywhere on the left half of the screen and drag. Push up to run upfield; push further to sprint, which burns the stamina bar. Run 10 metres to tick this off.'},
-  {id:'pass',title:'PASS',text:'Swipe left or right on the right half of the screen to pass that way. A short swipe hits the nearest runner, a long swipe throws a cut-out. A quick flick is a flat pass; a slow swipe floats it. Complete a pass.'},
+  {id:'pass',title:'PASS',text:'Swipe left or right on the right half of the screen to pass that way. A short swipe hits the nearest runner, a long swipe throws a cut-out. Better passers throw flatter, faster balls. Complete a pass.'},
   {id:'step',title:'BEAT YOUR MAN',text:'Tap the right half of the screen to side step. Hold left or right with your left thumb to pick the direction. Tap just as you’re hit to fend or bump off. Try a step.'},
   {id:'early',title:'PASS FROM THE RUCK',text:'While your tackled player plays the ball, swipe left or right to call the pass early. Your hooker throws it the moment he picks it up. Do it now.'},
   {id:'kick',title:'KICK',text:'You usually kick on the last tackle. Swipe up to kick: the yellow marker shows the kick and where it lands. A short swipe grubbers along the ground, a longer one punts it, and inside their 35 it’s a bomb.'},
@@ -1033,7 +1033,7 @@ function beginPTB(x,y,tackled,o={}){
   G.defLineY=ly; G.onsideY=ly; G.lsT=0; G.chasers=[];
   // play-the-ball speed: regular = time for the line to get back onside, dominant = slower, quick = before they're set
   const ls=G.lineSpeed[1-a], kind=o.kind||'regular';
-  let need=hyp(dh.x-dh.tx,dh.y-dh.ty)/(maxSp(dh)*1.05); for(const p of D){ if(p===fbD||p.drop) continue; need=Math.max(need,hyp(p.x-p.tx,p.y-p.ty)/(maxSp(p)*1.05)); }
+  let need=hyp(dh.x-dh.tx,dh.y-dh.ty)/(maxSp(dh)*1.05); for(const p of D){ if(p===fbD||p.drop) continue; need=Math.max(need,Math.abs(p.y-p.ty)/(maxSp(p)*1.2)+Math.abs(p.x-p.tx)*.03); }
   const reg=clamp(need+.35,1.0,3.6); let dur=kind==='quick'?.7:kind==='dominant'?Math.min(4,Math.max(reg+.6,1.9)):reg;
   dur+=ls==='passive'?-.1:ls==='aggressive'?.15:ls==='kill'?.3:0;
   if(o.teleport) dur=1.2;
@@ -1150,7 +1150,7 @@ function goLive(){
   b.st='held'; b.h=dh; onReceive(dh); G.phase='live'; G.playT=0; G.ptb.tackled.rejoin=.6;
   G.shapeActive=G.ptb.mode==='shape'; if(a===0) G.shapeCall=false;
   if(a===0) G.ts=1;
-  for(const p of G.P[1-a]) p.offside=p!==G.marker&&p.pos!=='FB'&&!p.drop&&(p.y-G.onsideY)*d<-1.2;
+  for(const p of G.P[1-a]){ p.offside=p!==G.marker&&p.pos!=='FB'&&!p.drop&&(p.y-G.onsideY)*d<-1.2; p.inter=false; }
   if(G.marker) G.marker.mHold=.35;
   const ls=LS[G.lineSpeed[1-a]];
   if(rnd()<ls.off){ bump(G.marker,'pen'); penalty(a,G.ptb.x,G.ptb.y+d*10,'OFFSIDE'); }
@@ -1273,20 +1273,20 @@ function chooseRecv(c,side,tier){
 }
 function passBall(p,q,o={}){
   endRun(p,false);
-  const b=G.ball, d=dirOf(p.team), speed=o.flat?17:11, run=maxSp(q)*.8;
+  const b=G.ball, d=dirOf(p.team), fl=o.off?.8:clamp((p.r.han-.35)/.55,0,1), speed=11+6.5*fl, run=maxSp(q)*.8;
   let tx=q.x, ty=q.y;
   for(let i=0;i<3;i++){ const t=hyp(tx-p.x,ty-p.y)/speed; tx=q.x+q.vx*t*.5;
     const lim=p.y-d*.4; let want=q.y+d*run*t; if((want-lim)*d>0) want=lim; ty=want; }
   // dummy-half passes from the base of the ruck are routine: the marker barely affects them
   const atRuck=!!(G.ptb&&p===G.ptb.dh&&hyp(p.x-G.ptb.x,p.y-G.ptb.y)<3.5);
   const opp=nearOpp(p,false), pr=(opp<2.5?1:opp<4?.5:0)*(atRuck?.25:1);
-  const errS=(.12+(1-p.r.han)*.8+pr*.45+(1-p.stam)*.45+(o.flat?.2:0)+(o.cut?.3:0)+(o.off?.5:0))*(p.team===1?D3(1.3,1,.8):1);
+  const errS=(.12+(1-p.r.han)*.8+pr*.45+(1-p.stam)*.45+(o.cut?.3:0)+(o.off?.5:0))*(p.team===1?D3(1.3,1,.8):1);
   const g=(rnd()+rnd()+rnd()-1.5)*errS; const L=hyp(tx-p.x,ty-p.y)||1; const px=-(ty-p.y)/L, py=(tx-p.x)/L;
   let ox=px*g, oy=py*g*.6; if(oy*d>0){ ox=-ox; oy=-oy; } tx+=ox; ty+=oy;
   // a loose pass can drift forward: more likely off the ground, under pressure, flat, long or tired
-  const fwdP=atRuck?.004:clamp(.01+(o.off?.12:0)+(o.flat?.02:0)+(o.cut?.03:0)+pr*.04+(1-p.r.han)*.05+(1-p.stam)*.03,0,.3); if(rnd()<fwdP) ty+=d*(.9+rnd()*1.3);
+  const fwdP=atRuck?.004:clamp(.01+(o.off?.12:0)+(o.cut?.03:0)+pr*.04+(1-p.r.han)*.05+(1-p.stam)*.03,0,.3); if(rnd()<fwdP) ty+=d*(.9+rnd()*1.3);
   b.st='pass'; b.h=null; b.x=p.x; b.y=p.y; b.z=1.1;
-  b.pass={fx:p.x,fy:p.y,tx,ty,t:0,T:Math.max(.12,hyp(tx-p.x,ty-p.y)/speed),to:q,flat:!!o.flat,cut:!!o.cut,sw:!!o.sw,off:!!o.off,err:Math.abs(g),chk:new Set(),passer:p,team:p.team,pvx:p.vx,pvy:p.vy,peak:o.flat?.35:1.5};
+  b.pass={fx:p.x,fy:p.y,tx,ty,t:0,T:Math.max(.12,hyp(tx-p.x,ty-p.y)/speed),to:q,flat:fl>.5,fl,cut:!!o.cut,sw:!!o.sw,off:!!o.off,err:Math.abs(g),chk:new Set(),passer:p,team:p.team,pvx:p.vx,pvy:p.vy,peak:lerp(1.5,.35,fl)};
   p.lane=clamp(p.x,2,FW-2); p.depth=2.6; p.cd=.25;
   if(G.shapeActive&&q.back){ const pd=G.pods.find(z=>z.back===q), fr=pd&&pd.front; floatTxt('BACK DOOR',q);
     if(fr) for(const z of G.P[1-p.team]){ if(z.down<=0&&hyp(z.x-fr.x,z.y-fr.y)<5&&rnd()<.8){ z.bite=.4; z.biteX=fr.x; } } }
@@ -1300,7 +1300,7 @@ function updPass(dt){
   if(u>.12&&u<.92){
     for(const q of G.P[1-P.team]){ if(q.down>0||q.offside||P.chk.has(q)) continue;
       if(hyp(q.x-b.x,q.y-b.y)<1.1&&b.z<2.4){ P.chk.add(q); const defT=q.team, ls=LS[G.lineSpeed[defT]], cm=counterMod(defT);
-        const pi=(P.flat?.07:.24)*(.6+.8*q.r.def)*ls.intc*cm.intc*(P.cut?1.3:1)*(q.team===1?D3(.6,1,1.4):D3(1.3,1,.8));
+        const pi=lerp(.22,.07,P.fl!=null?P.fl:(P.flat?1:0))*(.6+.8*q.r.def)*ls.intc*cm.intc*(P.cut?1.3:1)*(q.team===1?D3(.6,1,1.4):D3(1.3,1,.8));
         if(rnd()<pi){ markError(P.team); bump(P.passer,'err'); SFX.error(); changePossession(q.team,q,'INTERCEPT!'); return; } } }
   }
   if(u<1) return;
@@ -1310,7 +1310,7 @@ function updPass(dt){
     floatTxt('LOOSE BALL',{x:b.x,y:b.y}); setLooseChase(); return;
   }
   const opp=nearOpp(q,false), pr=opp<2?1:opp<3.5?.5:0;
-  const pc=.995-P.err*.01-(P.flat?.005:0)-pr*.025-(1-q.r.han)*.02-Math.max(0,dd-1)*.02-(P.off?.04:0);
+  const pc=.995-P.err*.01-pr*.025-(1-q.r.han)*.02-Math.max(0,dd-1)*.02-(P.off?.04:0);
   if(rnd()>pc){ b.pass=null; bump(q,'err'); floatTxt(P.off?'LOOSE OFFLOAD':pr>=.5?'UNDER PRESSURE':P.err>.6||dd>1.3?'BAD PASS':'SPILLED IT',q); return turnover('KNOCK-ON',q.team,q.x,q.y); }
   if((b.y-P.fy)*dirOf(P.team)>.5){ if(rnd()<.8){ b.pass=null; bump(P.passer,'err'); return turnover('FORWARD PASS',P.team,b.x,b.y); } playOn(); }
   b.st='held'; b.h=q; b.pass=null; onReceive(q); SFX.catch(); if(P.team===0) tutDone('pass'); G.assist={rec:P.passer.rec,team:P.team,to:q.rec};
@@ -1596,7 +1596,7 @@ function defAI(p,dt,f,a,d){
   if(!f){ accel(p,0,0,dt); return; }
   if(p.offside){ // must retreat behind the 10m line (or be passed by the ball) before rejoining play
     if((p.y-G.onsideY)*d>=-.2||(p.y-f.y)*d<-1) p.offside=false;
-    else { steer(p,p.x,capDef(G.onsideY+d*.8,d),mx,dt,6); return; } }
+    else { steer(p,p.x,capDef(G.onsideY+d*.8,d),mx*1.15,dt,7); return; } }
   if(p.mHold>0){ p.mHold-=dt; accel(p,0,0,dt); return; }
   if(p.bite>0){ p.bite-=dt; steer(p,p.biteX,p.y,mx*.6,dt); return; }
   const isFB=p.pos==='FB', ahead=(p.y-f.y)*d, dd=hyp(p.x-f.x,p.y-f.y);
@@ -1820,12 +1820,16 @@ function stepLive(dt){
 function checkCarrier(c,a,d){
   if(c.x<0||c.x>FW){ tjFlag(c.x<34?0:1); bump(c,'err'); return turnover('INTO TOUCH',c.team,c.x,c.y); }
   if((c.y-oppTry(a))*d>=0) return scoreTry(c);
-  if(!G.contact){ for(const q of G.P[1-a]){ if(q.down>0||q.bite>0||q.off||q.team===c.team) continue; if(hyp(q.x-c.x,q.y-c.y)<(G.lineSpeed[1-a]==='passive'&&Math.abs(oppTry(a)-c.y)<10?1.35:1)*(q.team===1?D3(.85,1.08,1.22):D3(1.15,1,.95))){ if(q.offside){ bump(q,'pen'); return penalty(a,c.x,c.y,'OFFSIDE'); } startContact(c,q); break; } } }
+  if(!G.contact){ for(const q of G.P[1-a]){ if(q.down>0||q.bite>0||q.off||q.team===c.team) continue; if(hyp(q.x-c.x,q.y-c.y)<(G.lineSpeed[1-a]==='passive'&&Math.abs(oppTry(a)-c.y)<10?1.35:1)*(q.team===1?D3(.85,1.08,1.22):D3(1.15,1,.95))){ if(q.offside){ if(!q.inter&&rnd()<.15){ bump(q,'pen'); return penalty(a,c.x,c.y,'OFFSIDE · INTERFERENCE'); } q.inter=true; continue; } startContact(c,q); break; } } }
   if(!G.lbShown&&G.playT>.4&&!G.contact){ const line=G.P[1-a].filter(p=>p.pos!=='FB'); if(line.every(p=>p.down>0||(p.y-c.y)*d<-.6)){ G.lbShown=true; G.stats[a].lb++; bump(c,'lb'); const LA=G.assist; if(LA&&LA.team===a&&LA.to===c.rec&&LA.rec!==c.rec&&G.ps[LA.rec]) G.ps[LA.rec].lba++; banner('LINE BREAK!','small'); SFX.cheer(); } }
 }
 function stepPTB(dt){
   tickClock(dt); const P=G.ptb; P.t+=dt; const d=dirOf(G.poss);
-  for(const p of G.all){ if(p===P.tackled){ steer(p,P.x,P.y,4,dt); continue; } steer(p,p.tx,p.ty,maxSp(p)*1.05,dt); }
+  const D=G.P[1-G.poss];
+  for(const p of G.all){ if(p===P.tackled){ steer(p,P.x,P.y,4,dt); continue; }
+    if(p.team!==G.poss&&p!==G.marker&&p.pos!=='FB'&&!p.drop&&(p.y-G.onsideY)*d<-.3){ // still offside: backpedal straight back, only a little drift sideways
+      steer(p,p.x+clamp(p.tx-p.x,-1.2,1.2),p.ty,maxSp(p)*1.2,dt,7); continue; }
+    steer(p,p.tx,p.ty,maxSp(p)*1.05,dt,p.team!==G.poss?6:3); }
   separate(); for(const p of G.all) integrate(p,dt,false);
   { const d2=dirOf(G.poss); for(const p of G.P[1-G.poss]) p.y=capDef(p.y,d2); }
   const u=clamp((P.t-(P.dur-.3))/.3,0,1);
@@ -2010,9 +2014,9 @@ function render(){
   if(b.st==='pass'||b.st==='air'||b.st==='fg'||b.st==='ptb'||b.st==='dead'||b.st==='tee'||b.st==='scrum'){
     if(!(b.st==='dead'&&G.celebrate)){ const X=sx(b.x), Y=sy(b.y); ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(X-2,Y,4,1); drawBallAt(X,Y-Math.round(b.z*ky*.55)); }
   }
-  if(prev&&prev.q){ const q=prev.q, x0=sx(pc.x), y0=sy(pc.y)-9, x1=sx(q.x), y1=sy(q.y)-9, h=prev.cl.flat?4:14;
+  if(prev&&prev.q){ const q=prev.q, x0=sx(pc.x), y0=sy(pc.y)-9, x1=sx(q.x), y1=sy(q.y)-9, h=Math.round(lerp(14,4,clamp((pc.r.han-.35)/.55,0,1)));
     ctx.fillStyle='rgba(255,178,46,.8)'; for(let i=1;i<12;i++){ const u=i/12; const x=lerp(x0,x1,u), y=lerp(y0,y1,u)-Math.sin(Math.PI*u)*h; ctx.fillRect(Math.round(x),Math.round(y),1,1); }
-    ctx.font='8px Silkscreen, monospace'; ctx.textAlign='center'; ctx.fillStyle='#ffb22e'; ctx.fillText(prev.door||(prev.q.pos+' · '+(prev.cl.flat?'FLAT':'FLOAT')),x1,y1-14); }
+    ctx.font='8px Silkscreen, monospace'; ctx.textAlign='center'; ctx.fillStyle='#ffb22e'; ctx.fillText(prev.door||prev.q.pos,x1,y1-14); }
   if(gest&&gest.pts.length>1){ ctx.strokeStyle='rgba(238,243,232,.35)'; ctx.lineWidth=1; ctx.beginPath(); gest.pts.forEach((p,i)=>{ const X=p.x*IW/cssW, Y=p.y*IH/cssH; i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); }); ctx.stroke(); }
   if(uc&&!aimType()&&gest&&gest.pts.length>1){ const cl=classify(gest); if(cl.vertical&&cl.dy<-20){
       const dur=performance.now()-gest.pts[0].t, k=autoKick(uc,cl.dx,cl.dy,cl.len,dur);
