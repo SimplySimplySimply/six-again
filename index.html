@@ -1036,7 +1036,7 @@ function beginPTB(x,y,tackled,o={}){
   attackShape(x,y,d,dh,tackled,mode);
   // defence: marker at the ruck, line 10m back marking their opposite number, fullback deep
   const ly=capDef(y+d*10,d);
-  const fbD=D.find(p=>p.pos==='FB'&&!p.off)||D.find(p=>p.pos==='WG'&&!p.off), mk=o.tap?null:D.find(p=>p.pos==='PR'&&!p.off)||D.find(p=>!p.off&&p!==fbD);
+  const fbD=D.find(p=>p.pos==='FB'&&!p.off)||D.find(p=>p.pos==='WG'&&!p.off), mk=o.tap?null:(o.tackler&&o.tackler.team===1-a&&!o.tackler.off?o.tackler:null)||D.find(p=>p.pos==='PR'&&!p.off)||D.find(p=>!p.off&&p!==fbD); // the man who made the tackle stands at marker
   G.marker=mk; if(mk){ mk.mark=dh; mk.tx=x; mk.ty=capDef(y+d*1.5,d); }
   const pairs={HK:'PR',LK:'LK',HB:'HB',FE:'FE',CE:'CE'};
   const dW=D.filter(p=>p.pos==='WG').sort((p,q)=>p.x-q.x), aW=A.filter(p=>p.pos==='WG').sort((p,q)=>p.lane-q.lane);
@@ -1272,7 +1272,7 @@ function completeTackle(){
   const kind=(multi||k.square||(G.lineSpeed[1-a]==='kill'&&rnd()<.5))?'dominant':(G.lbShown||k.side)?'quick':'regular';
   if(kind!=='regular') floatTxt(kind==='dominant'?(multi?'GANG TACKLE':'DOMINANT TACKLE'):'QUICK PLAY-THE-BALL',c);
   G.ball.st='ptb'; G.ball.h=c;
-  after(.15,()=>stoppage(()=>beginPTB(x,y,c,{kind})));
+  const tackler=k.tk[0]; after(.15,()=>stoppage(()=>beginPTB(x,y,c,{kind,tackler})));
 }
 function tryOffload(c,q){
   const k=G.contact; const n=k?k.tk.length:1;
