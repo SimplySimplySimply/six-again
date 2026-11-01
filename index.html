@@ -2690,7 +2690,7 @@ function openCareer(){ $('home').hidden=true; if(!C()) renderNewCareer(); else {
 function renderNewCareer(){
   $('chNew').hidden=true; $('chClub').textContent='NEW CAREER'; $('chSub').textContent='PICK THE CLUB YOU WANT TO COACH'; $('chCredits').textContent='–'; $('chTabs').innerHTML='';
   const k=$('chKit').getContext('2d'); k.clearRect(0,0,33,51);
-  const b=$('chBody'); b.innerHTML='<p>You start with 6 coaching credits. Win games to earn more, then spend them on training players (once each per season), facilities and coaching staff. Players grow from good form, but only up to their potential. Every club plays 16 games plus a bye, then the top 8 play finals.</p><div class="grid" id="ncGrid"></div><div class="row"><span class="grow"></span><button class="pxbtn big" id="ncGo" type="button">START CAREER</button></div>';
+  const b=$('chBody'); b.innerHTML='<p>You start with 6 coaching credits. Win games to earn more, then spend them on training players (each one once every 2 weeks), facilities and coaching staff. Players grow from good form, but only up to their potential. Every club plays 16 games plus a bye, then the top 8 play finals.</p><div class="grid" id="ncGrid"></div><div class="row"><span class="grow"></span><button class="pxbtn big" id="ncGo" type="button">START CAREER</button></div>';
   let sel=youI;
   const draw=()=>{ const g=$('ncGrid'); g.innerHTML=''; clubs().forEach((c,i)=>{ const bt=document.createElement('button'); bt.type='button'; bt.className='club'+(i===sel?' you':''); bt.style.setProperty('--c1',c.c1); bt.style.setProperty('--c2',c.c2);
       bt.innerHTML='<span class="kit"></span><div><span class="nm"></span><small></small></div>'; bt.querySelector('.nm').textContent=c.name; bt.querySelector('small').textContent=starStr(teamStars(c))+' '+Math.round(teamOvr(c));
@@ -2796,12 +2796,15 @@ function signCtl(label,def,cb,disabled,plus){
   const b=document.createElement('button'); b.type='button'; b.className='pxbtn sm'; b.textContent=label; b.disabled=!!disabled; b.onclick=()=>cb(+sel.value);
   sel.disabled=!!disabled; w.appendChild(sel); w.appendChild(b); return w;
 }
+// training week counter: rounds, then finals weeks, then the off-season. A player can train once every 2 weeks.
+function trainWeek(){ const c=C(); return c.season*40+(c.phase==='season'?c.round:c.phase==='finals'?20+(c.finals?c.finals.week:0):30); }
+function trainWait(p){ return p.trainedW==null?0:Math.max(0,2-(trainWeek()-p.trainedW)); }
 function trainCost(p){ return Math.max(3,3+Math.floor((ovr(p)-60)/7)); }
 let swapSel=null;
 function hubSquad(B){
   // same layout as Clubs & Kits: the nine starters by position, then the interchange (INT), then reserves
   const c=C(), cl=myClub(), st=lineupOf(cl), bench=benchOf(cl,st);
-  B.appendChild(el('<p class="lbl">TAP SWAP ON TWO PLAYERS TO CHANGE WHO STARTS · INT IS THE BENCH (3 FORWARDS, 1 BACK), PICKED FROM THE REST · TAP A NAME TO RENAME · FADED STARS AND /NUMBER ARE POTENTIAL · GOOD GAMES FILL THE XP BAR (+1 OVERALL) · TRAIN ONCE PER PLAYER PER SEASON</p>'));
+  B.appendChild(el('<p class="lbl">TAP SWAP ON TWO PLAYERS TO CHANGE WHO STARTS · INT IS THE BENCH (3 FORWARDS, 1 BACK), PICKED FROM THE REST · TAP A NAME TO RENAME · FADED STARS AND /NUMBER ARE POTENTIAL · GOOD GAMES FILL THE XP BAR (+1 OVERALL) · TRAINING IS +1, ONCE EVERY 2 WEEKS PER PLAYER</p>'));
   const keys=[['spd','SPD'],['str','STR'],['han','HAN'],['kick','KCK'],['def','DEF'],['sta','STA']];
   const tb=document.createElement('table'); tb.className='sheet'; tb.innerHTML='<tr><th>POS</th><th>NAME</th><th>AGE</th>'+keys.map(k=>'<th>'+k[1]+'</th>').join('')+'<th>OVR</th><th></th><th></th></tr>';
   const rest=cl.players.filter(p=>!st.includes(p)&&!bench.includes(p)).sort((a,b)=>(a.inj?1:0)-(b.inj?1:0)||ovr(b)-ovr(a));
@@ -2816,9 +2819,9 @@ function hubSquad(B){
     const sw=document.createElement('button'); sw.type='button'; sw.className='pxbtn sm'+(swapSel===p.id?'':' ghost'); sw.textContent=swapSel===p.id?'CANCEL':swapSel?'WITH':'SWAP'; sw.disabled=!!p.inj&&!slot;
     sw.onclick=()=>{ if(!swapSel){ swapSel=p.id; renderHub(); return; } if(swapSel===p.id){ swapSel=null; renderHub(); return; } doSwap(swapSel,p.id); };
     tr.children[tr.children.length-2].appendChild(sw);
-    const bt=document.createElement('button'); bt.type='button'; bt.className='pxbtn sm'; const cost=trainCost(p), maxed=!p.grow&&ovr(p)>=potOf(p), done=p.trainedS===c.season; bt.textContent=p.grow?'GROWING':maxed?'MAXED':done?'TRAINED':'TRAIN '+cost; bt.disabled=!!p.grow||maxed||done||c.credits<cost;
-    bt.title=p.grow?'Legend prospects grow on their own.':maxed?'He has reached his potential.':done?'Already trained this season. One upgrade per player per season.':'+2 overall now (up to his potential '+potOf(p)+'). One upgrade per player per season.';
-    bt.onclick=()=>{ if(c.credits<cost||p.trainedS===c.season||p.grow) return; const o0=ovr(p); c.credits-=cost; p.trainedS=c.season; levelUp(p,2); newsAdd('Trained '+p.name+': '+o0+' → '+ovr(p)+(ovr(p)>=potOf(p)?' (at his potential).':'.')); saveLeague(); renderHub(); };
+    const bt=document.createElement('button'); bt.type='button'; bt.className='pxbtn sm'; const cost=trainCost(p), maxed=!p.grow&&ovr(p)>=potOf(p), wait=trainWait(p), done=wait>0; bt.textContent=p.grow?'GROWING':maxed?'MAXED':done?'RESTING '+wait+'W':'TRAIN '+cost; bt.disabled=!!p.grow||maxed||done||c.credits<cost;
+    bt.title=p.grow?'Legend prospects grow on their own.':maxed?'He has reached his potential.':done?'Trained recently. He can train again in '+wait+' week'+(wait>1?'s':'')+'.':'+1 overall now (up to his potential '+potOf(p)+'). Each player can train once every 2 weeks.';
+    bt.onclick=()=>{ if(c.credits<cost||trainWait(p)>0||p.grow) return; const o0=ovr(p); c.credits-=cost; p.trainedW=trainWeek(); levelUp(p,1); newsAdd('Trained '+p.name+': '+o0+' → '+ovr(p)+(ovr(p)>=potOf(p)?' (at his potential).':'.')); saveLeague(); renderHub(); };
     tr.lastElementChild.appendChild(bt); tb.appendChild(tr); });
   const w=el('<div class="tblwrap"></div>'); w.appendChild(tb); B.appendChild(w);
 }
