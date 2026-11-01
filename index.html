@@ -226,6 +226,7 @@ select.sel{font-family:var(--body);font-size:14px;background:#0e1914;color:var(-
 .repbar i{display:block;height:100%;background:var(--amber)}
 .repbar span{position:absolute;top:14px;font-family:var(--display);font-size:8px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
 .repbar span::before{content:"";position:absolute;left:50%;top:-16px;height:14px;border-left:1px dashed var(--chalk)}
+.club.locked{opacity:.45}
 .kitMini{width:22px;height:34px;image-rendering:pixelated;margin:0 4px}
 .kitRow{gap:6px;flex-wrap:wrap}
 .presetGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
@@ -308,6 +309,8 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
         <button class="pick" id="pickOpp" type="button">OPPONENT <b id="oppName">Random</b></button>
       </div>
       <div class="grid" id="clubGrid"></div>
+      <p class="lbl" style="margin:10px 0 6px">REP TEAMS · PLAY AS THE ONES YOU'VE COACHED IN CAREER <span id="repNote" style="color:var(--amber)"></span></p>
+      <div class="grid" id="repGrid"></div>
       <div class="row">
         <button class="pxbtn ghost sm" id="qBack" type="button">BACK</button>
         <span class="lbl">MATCH LENGTH</span>
@@ -2210,6 +2213,18 @@ function toMenu(){ if(TUT.on){ TUT.on=false; syncTutBar(); } $('tipModal').hidde
 // ---------------------------------------------------------------- menu
 loadLeague();
 let youI=store.get('you',7), oppI=store.get('opp',-1), picking='you', len=store.get('len','std');
+// rep teams in quick match: any rep team can be the opponent; you can only pick the ones you've coached in career
+let youRep=store.get('youRep',null), oppRep=store.get('oppRep',null), REP_READY=false; // REP_TEAMS is defined further down
+function unlockRep(key){ if(!LEAGUE) return; LEAGUE.repUnlocked=[...new Set([...(LEAGUE.repUnlocked||[]),key])]; }
+function repUnlocked(){ const u=new Set((LEAGUE&&LEAGUE.repUnlocked)||[]), c=LEAGUE&&LEAGUE.career;
+  if(c){ if(c.roles&&c.roles.origin) u.add(c.roles.origin); if(c.roles&&c.roles.nation) u.add(c.roles.nation);
+    for(const h of c.honours||[]) for(const k in REP_TEAMS) if(h.t==='Appointed '+REP_TEAMS[k].name+' coach') u.add(k); }
+  return u; }
+function repRating(key){ const o=sideOvr(repSide(key,false)); return {o,st:clamp(Math.round((o-45)/7),1,5)}; }
+function repRival(key){ if(key==='QLD') return 'NSW'; if(key==='NSW') return 'QLD'; const t=TEST_TIES.find(t=>t.includes(key)); return t?t[0]===key?t[1]:t[0]:'AUS'; }
+function youObj(){ return youRep&&REP_READY?REP_TEAMS[youRep]:clubs()[youI]; }
+function oppObj(){ return oppRep&&REP_READY?REP_TEAMS[oppRep]:oppI>=0?clubs()[oppI]:null; }
+function rateFor(obj,key){ if(key){ const r=repRating(key); return {st:r.st,o:Math.round(r.o)}; } return {st:teamStars(obj),o:Math.round(teamOvr(obj))}; }
 function clubs(){ return LEAGUE.clubs; }
 function renderClubs(){
   const g=$('clubGrid'); g.innerHTML='';
@@ -2218,27 +2233,39 @@ function renderClubs(){
     b.innerHTML='<span class="kit"></span><div><span class="nm"></span><span class="trate"></span><small></small></div>';
     b.querySelector('.nm').textContent=c.name; b.querySelector('small').textContent=STYLES[c.style].short;
     b.querySelector('.trate').innerHTML='<span class="stars">'+starStr(teamStars(c))+'</span><b class="ovr">'+Math.round(teamOvr(c))+'</b>';
-    b.addEventListener('click',()=>{ audio(); SFX.blip(); kitOpp=null; if(picking==='you'){ youI=i; if(oppI===i) oppI=-1; picking='opp'; } else { oppI=(i===youI)?-1:i; } syncMenu(); });
+    if(!youRep&&i===youI) b.className='club you'; if(youRep&&b.classList.contains('you')) b.classList.remove('you'); if(oppRep&&b.classList.contains('opp')) b.classList.remove('opp');
+    b.addEventListener('click',()=>{ audio(); SFX.blip(); kitOpp=null; if(picking==='you'){ youI=i; youRep=null; if(oppI===i) oppI=-1; picking='opp'; } else { oppRep=null; oppI=(i===youI&&!youRep)?-1:i; } syncMenu(); });
     g.appendChild(b); });
+  const rg=$('repGrid'); if(!rg||!REP_READY) return; rg.innerHTML=''; const un=repUnlocked();
+  for(const key in REP_TEAMS){ const T=REP_TEAMS[key], open=un.has(key), r=rateFor(T,key), b=document.createElement('button'); b.type='button';
+    b.className='club'+(youRep===key?' you':'')+(oppRep===key?' opp':'')+(!open&&picking==='you'?' locked':''); b.style.setProperty('--c1',T.c1); b.style.setProperty('--c2',T.c2);
+    b.innerHTML='<span class="kit"></span><div><span class="nm"></span><span class="trate"><span class="stars">'+starStr(r.st)+'</span><b class="ovr">'+r.o+'</b></span><small></small></div>';
+    b.querySelector('.nm').textContent=T.name; b.querySelector('small').textContent=open?(key==='QLD'||key==='NSW'?'STATE OF ORIGIN':'INTERNATIONAL'):'LOCKED · COACH THEM IN CAREER';
+    b.addEventListener('click',()=>{ audio(); SFX.blip(); kitOpp=null;
+      if(picking==='you'){ if(!open){ $('repNote').textContent=T.name.toUpperCase()+' UNLOCKS WHEN YOU COACH THEM IN CAREER. YOU CAN STILL PLAY AGAINST THEM.'; return; } youRep=key; if(oppRep===key) oppRep=null; if(!oppRep&&oppI<0) oppRep=repRival(key); picking='opp'; }
+      else { if(youRep===key) return; oppRep=key; oppI=-1; }
+      $('repNote').textContent=''; syncMenu(); });
+    rg.appendChild(b); }
 }
 let kitYou='home', kitOpp=null; // null = automatic (switch to away on a clash)
-function quickKits(o){ const ky=kitYou, ko=kitOpp||(o==null||o<0?'home':autoKit(clubs()[youI],clubs()[o],ky)); return [ky,ko]; }
+function quickKits(oo){ const ky=kitYou, ko=kitOpp||(!oo?'home':autoKit(youObj(),oo,ky)); return [ky,ko]; }
 function syncKits(){
-  const [ky,ko]=quickKits(oppI);
+  const [ky,ko]=quickKits(oppObj());
   document.querySelectorAll('#kitYou button').forEach(b=>b.classList.toggle('on',b.dataset.k===ky));
   document.querySelectorAll('#kitOpp button').forEach(b=>b.classList.toggle('on',b.dataset.k===ko));
   const dr=(id,cl,k)=>{ const cv=$(id), c2=cv.getContext('2d'); c2.imageSmoothingEnabled=false; c2.clearRect(0,0,cv.width,cv.height); if(cl) drawKit(c2,kitOf(cl,k),10,32,2); };
-  dr('kitYouC',clubs()[youI],ky); dr('kitOppC',oppI>=0?clubs()[oppI]:null,ko);
-  $('kitNote').textContent=oppI>=0&&kitClash(kitOf(clubs()[youI],ky),kitOf(clubs()[oppI],ko))?'· THESE KITS CLASH':'';
+  dr('kitYouC',youObj(),ky); dr('kitOppC',oppObj(),ko);
+  $('kitNote').textContent=oppObj()&&kitClash(kitOf(youObj(),ky),kitOf(oppObj(),ko))?'· THESE KITS CLASH':'';
 }
 document.querySelectorAll('#kitYou button').forEach(b=>b.onclick=()=>{ kitYou=b.dataset.k; syncKits(); });
 document.querySelectorAll('#kitOpp button').forEach(b=>b.onclick=()=>{ kitOpp=b.dataset.k; syncKits(); });
 function syncMenu(){
-  const rt=cl=>' <span class="stars" style="font-size:13px">'+starStr(teamStars(cl))+'</span><span class="ovr" style="font-size:14px">'+Math.round(teamOvr(cl))+'</span>';
-  $('youName').innerHTML=esc(clubs()[youI].name)+rt(clubs()[youI]); $('oppName').innerHTML=oppI<0?'Random':esc(clubs()[oppI].name)+rt(clubs()[oppI]); syncKits();
+  if(REP_READY&&youRep&&!repUnlocked().has(youRep)) youRep=null;
+  const rt=(cl,key)=>{ const r=rateFor(cl,key); return ' <span class="stars" style="font-size:13px">'+starStr(r.st)+'</span><span class="ovr" style="font-size:14px">'+r.o+'</span>'; };
+  $('youName').innerHTML=esc(youObj().name)+rt(youObj(),REP_READY&&youRep); $('oppName').innerHTML=!oppObj()?'Random':esc(oppObj().name)+rt(oppObj(),REP_READY&&oppRep); syncKits();
   $('pickYou').classList.toggle('on',picking==='you'); $('pickOpp').classList.toggle('on',picking==='opp');
   document.querySelectorAll('#lenSeg button').forEach(b=>b.classList.toggle('on',b.dataset.len===len));
-  renderClubs(); store.set('you',youI); store.set('opp',oppI); store.set('len',len);
+  renderClubs(); store.set('you',youI); store.set('opp',oppI); store.set('youRep',youRep); store.set('oppRep',oppRep); store.set('len',len);
 }
 $('pickYou').onclick=()=>{ picking='you'; syncMenu(); };
 $('pickOpp').onclick=()=>{ picking='opp'; syncMenu(); };
@@ -2323,8 +2350,10 @@ function startMatch(sA,sB,len,opts){
   if(!(opts&&opts.tutorial)&&!store.get('tutDone',false)&&!store.get('tutSkip',false)){ G.pendingStart=go; $('tutAsk').hidden=false; } else go();
 }
 $('startBtn').onclick=()=>{
-  let o=oppI; if(o<0){ do{ o=Math.floor(rnd()*clubs().length); }while(o===youI); }
-  const [ky,ko]=quickKits(o); $('menu').hidden=true; startMatch(sideFromClub(clubs()[youI],ky),sideFromClub(clubs()[o],ko),len,{});
+  let o=oppI, oR=oppRep; if(o<0&&!oR){ if(youRep) oR=repRival(youRep); else do{ o=Math.floor(rnd()*clubs().length); }while(o===youI); }
+  const oo=oR?REP_TEAMS[oR]:clubs()[o], [ky,ko]=quickKits(oo);
+  const me=youRep?repSide(youRep,false):sideFromClub(clubs()[youI],ky), them=oR?repSide(oR,false):sideFromClub(clubs()[o],ko);
+  $('menu').hidden=true; startMatch(me,them,len,{});
 };
 $('qBack').onclick=()=>{ $('menu').hidden=true; showHome(); };
 function showHome(){ if(typeof syncDiff==='function') syncDiff(); if(typeof syncTutBtn==='function') syncTutBtn(); ['menu','clubsModal'].forEach(id=>$(id).hidden=true); if($('careerHub')) $('careerHub').hidden=true; $('home').hidden=false; if(LEAGUE&&LEAGUE.career) pruneMatchSave(); syncResume(); drawHomeKits(); syncSaveNote(); }
@@ -2525,8 +2554,8 @@ function completeRound(userRes){
     c.results.push({r,h:res.h,a:res.a,sh:res.sh,sa:res.sa}); const top=applyMatch(res,true);
     if(h===c.club||a===c.club){ const home=h===c.club, us=home?res.sh:res.sa, them=home?res.sa:res.sh, opp=clubs()[home?a:h];
       const k=creditsFor(us,them,home); c.credits+=k;
-      c.last={t:(us>them?'Beat ':us<them?'Lost to ':'Drew with ')+opp.name+' '+us+'-'+them,k,played:!!userRes};
-      newsAdd('Round '+(r+1)+': '+c.last.t+'. +'+k+' coaching credit'+(k>1?'s':'')+'.'); if(top[0]){ c.last.motm=top[0].name+' ('+clubs().find(cl=>cl.players.includes(top[0])).abbr+')'; newsAdd('Man of the match: '+c.last.motm+'.'); } }
+      c.last={t:(us>them?'Beat ':us<them?'Lost to ':'Drew with ')+opp.name+' '+us+'-'+them,k,played:!!userRes}; const rd=repGame(us,them,clubs().indexOf(opp),false);
+      newsAdd('Round '+(r+1)+': '+c.last.t+'. +'+k+' coaching credit'+(k>1?'s':'')+'.'+repTag(rd)); if(top[0]){ c.last.motm=top[0].name+' ('+clubs().find(cl=>cl.players.includes(top[0])).abbr+')'; newsAdd('Man of the match: '+c.last.motm+'.'); } }
   }
   if(!c.fixtures[r].some(p=>p.includes(c.club))){ c.credits+=1; c.last={t:'Bye week. The squad recovered.',k:1}; newsAdd('Round '+(r+1)+': bye. +1 coaching credit.'); }
   if(c.round<10) aiMarket();
@@ -2556,13 +2585,18 @@ function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%
 function finalsTies(){ const F=C().finals, al=[...F.alive].sort((a,b)=>F.seeds.indexOf(a)-F.seeds.indexOf(b)); const t=[]; for(let i=0;i<al.length/2;i++) t.push([al[i],al[al.length-1-i]]); return t; }
 const FIN_NAMES=['QUALIFYING FINALS','SEMI-FINALS','PRELIMINARY FINALS','GRAND FINAL'];
 function userTie(){ const c=C(); if(c.phase!=='finals'||!c.finals.ties) return null; return c.finals.ties.find(t=>t.includes(c.club))||null; }
+// reputation moves after every game you coach: win +2, draw +0.5, loss -1, a bit more for beating a better side or a big margin
+function repGame(us,them,opp,final){ const c=C(); let d=us>them?2:us===them?.5:-1;
+  if(us>them&&teamOvr(clubs()[opp])>teamOvr(myClub())+1) d+=1; if(us-them>=18) d+=.5; if(them-us>=30) d-=1; if(final&&us>them) d+=1.5;
+  c.rep=clamp(c.rep+d,0,100); return d; }
+function repTag(d){ return ' Reputation '+(d>=0?'+':'')+(Math.round(d*10)/10)+'.'; }
 function completeFinalsWeek(userRes){
   const c=C(), F=c.finals; tickInjuries();
   const winners=[];
   for(const [h,a] of F.ties){ const res=(userRes&&userRes.h===h&&userRes.a===a)?userRes:simMatch(h,a,true); applyMatch(res,false);
     F.games.push({w:F.week,h,a,sh:res.sh,sa:res.sa}); const win=res.sh>res.sa?h:a; winners.push(win);
     if(h===c.club||a===c.club){ const home=h===c.club, us=home?res.sh:res.sa, them=home?res.sa:res.sh, opp=clubs()[home?a:h]; const k=creditsFor(us,them,false)+1; c.credits+=k;
-      c.last={t:(us>them?'Beat ':'Lost to ')+opp.name+' '+us+'-'+them+' in the '+FIN_NAMES[Math.min(3,F.week)].toLowerCase().replace(/s$/,''),k}; newsAdd(c.last.t+'. +'+k+' credits.'); } }
+      c.last={t:(us>them?'Beat ':'Lost to ')+opp.name+' '+us+'-'+them+' in the '+FIN_NAMES[Math.min(3,F.week)].toLowerCase().replace(/s$/,''),k}; const rd=repGame(us,them,clubs().indexOf(opp),true); newsAdd(c.last.t+'. +'+k+' credits.'+repTag(rd)); } }
   F.alive=winners; F.week++;
   if(F.alive.length===1){ F.champ=F.alive[0]; F.ties=null; const champ=clubs()[F.champ]; newsAdd(champ.name+' are the premiers!'); if(F.champ===c.club){ c.credits+=10; c.honours.push({s:c.season,y:c.year,t:'Premiers'}); } startTests(); }
   else F.ties=finalsTies();
@@ -2572,7 +2606,9 @@ function startOffseason(){
   const c=C(), lad=ladder(), pos=lad.findIndex(r=>r.i===c.club)+1, row=lad.find(r=>r.i===c.club);
   let fin='Missed finals'; const F=c.finals; if(F){ if(F.champ===c.club) fin='Premiers'; else if(F.seeds.includes(c.club)){ const w=Math.max(0,...F.games.filter(g=>g.h===c.club||g.a===c.club).map(g=>g.w)); fin='Out in the '+FIN_NAMES[Math.min(3,w)].toLowerCase(); } }
   c.history.push({s:c.season,y:c.year,pos,w:row.w,d:row.d,l:row.l,fin});
-  c.rep=clamp(c.rep+(9-pos)*1.6+(F&&F.seeds.includes(c.club)?4:0)+(F&&F.champ===c.club?18:0),0,100);
+  // season bonuses on top of the game-by-game changes
+  const bonus=(pos<=8?4:0)+(pos<=4?2:0)+(pos===1?3:0)+(F&&F.champ===c.club?10:0)-(pos>=14?3:0);
+  c.rep=clamp(c.rep+bonus,0,100); if(bonus) newsAdd('Season bonus: reputation '+(bonus>0?'+':'')+bonus+(pos===1?' (minor premiers)':pos<=8?' (top 8)':' (bottom four)')+'.');
   if(pos<=4) c.credits+=5; else if(pos<=8) c.credits+=3;
   c.phase='offseason'; c.off={step:'review',pos,fin}; repReview(); saveLeague();
 }
@@ -2951,8 +2987,9 @@ const REP_TEAMS={
   PNG:{name:'Papua New Guinea',abbr:'PNG',c1:'#c8102e',c2:'#f6c400',c3:'#111111',pat:'v',style:'middle'},
   COK:{name:'Cook Islands',abbr:'COK',c1:'#1a7a3a',c2:'#f2f2f2',c3:'#f2f2f2',pat:'hoops',style:'kick'}
 };
+REP_READY=true; setTimeout(()=>{ if(LEAGUE) syncMenu(); },0);
 const ORIGIN_ROUNDS=[5,9,13], TEST_TIES=[['AUS','NZL'],['TGA','SAM'],['ENG','FIJ'],['PNG','COK']];
-const NATION_REP={AUS:75,NZL:60,ENG:60,TGA:45,SAM:45,FIJ:45,PNG:45,COK:45}, ORIGIN_REP=30;
+const NATION_REP={AUS:80,NZL:65,ENG:65,TGA:50,SAM:50,FIJ:50,PNG:50,COK:50}, ORIGIN_REP=20;
 function ensureCareer(){ const c=C(); c.market=c.market||[]; if(c.off&&c.off.fa){ c.market.push(...c.off.fa); delete c.off.fa; } if(!c.market.length&&c.phase==='season') for(let i=0;i<10;i++) c.market.push(genFA()); if(!c.statsV){ for(const cl of clubs()){ for(const p of cl.players){ if(!p.st||p.st.gp==null) p.st=blankSt(); } cl.ts=cl.ts||blankTS(); } c.medals=c.medals||[]; c.statsV=1; } c.roles=c.roles||{origin:null,nation:null}; c.origin=c.origin||{games:[]}; c.offers=c.offers||[]; c.repSel=c.repSel||{}; if(c.tests===undefined) c.tests=null; }
 function allPlayers(){ const out=[]; clubs().forEach((cl,ci)=>{ for(const p of cl.players) out.push({p,ci}); }); return out; }
 function eligibleFor(key){ const st=key==='QLD'||key==='NSW'; return allPlayers().filter(({p})=>!p.inj&&(st?p.origin===key:p.nat===key)); }
@@ -2966,7 +3003,7 @@ function autoPickIds(key){
 }
 function repSide(key,useSel){
   const c=C(), byId={}; for(const {p} of allPlayers()) byId[p.id]=p;
-  let ids=(useSel&&c.repSel[key]&&c.repSel[key].length===13)?c.repSel[key]:autoPickIds(key);
+  let ids=(useSel&&c&&c.repSel&&c.repSel[key]&&c.repSel[key].length===13)?c.repSel[key]:autoPickIds(key);
   const used=new Set(); const recs=ids.map((id,i)=>{ let p=id&&byId[id]; if(p&&(used.has(p.id)||p.inj)) p=null; if(p){ used.add(p.id); return p; } const pos=i<9?ORDER[i][0]:BENCH[i-9]; return padPlayer(key,pos,i); });
   const T=REP_TEAMS[key], starters=recs.slice(0,9), bench=recs.slice(9,13);
   return {id:key,name:T.name,abbr:T.abbr,c1:T.c1,c2:T.c2,c3:T.c3,pat:T.pat,style:T.style,rating:.6,starters,bench};
@@ -3051,16 +3088,16 @@ function renderOffers(B){
   const c=C(); if(!c.offers||!c.offers.length) return;
   const box=el('<div class="card2" style="margin-top:10px"><p class="big2">COACHING OFFERS</p><p>Your reputation has other teams calling. You keep your club job either way.</p><div class="row" id="ofBtns"></div></div>'); B.appendChild(box);
   for(const o of c.offers){ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'; b.textContent='COACH '+REP_TEAMS[o.v].name.toUpperCase();
-    b.onclick=()=>{ if(o.k==='origin') c.roles.origin=o.v; else c.roles.nation=o.v; c.offers=c.offers.filter(x=>x.k!==o.k); c.honours.push({s:c.season,y:c.year,t:'Appointed '+REP_TEAMS[o.v].name+' coach'}); newsAdd('Appointed '+REP_TEAMS[o.v].name+' coach.'); saveLeague(); renderHub(); };
+    b.onclick=()=>{ if(o.k==='origin') c.roles.origin=o.v; else c.roles.nation=o.v; unlockRep(o.v); c.offers=c.offers.filter(x=>x.k!==o.k); c.honours.push({s:c.season,y:c.year,t:'Appointed '+REP_TEAMS[o.v].name+' coach'}); newsAdd('Appointed '+REP_TEAMS[o.v].name+' coach.'); saveLeague(); renderHub(); };
     $('ofBtns').appendChild(b); }
   const d=document.createElement('button'); d.type='button'; d.className='pxbtn ghost'; d.textContent='NOT THIS YEAR'; d.onclick=()=>{ c.offers=[]; saveLeague(); renderHub(); }; $('ofBtns').appendChild(d);
 }
 let repEdit=null;
 function hubRep(B){
   const c=C(); ensureCareer();
-  const marks=[['ORIGIN',ORIGIN_REP],['PACIFIC',45],['NZ / ENG',60],['AUSTRALIA',75]];
+  const marks=[['ORIGIN',ORIGIN_REP],['PACIFIC',50],['NZ / ENG',65],['AUSTRALIA',80]];
   B.appendChild(el(`<div class="card2"><p class="lbl">COACHING REPUTATION · ${Math.round(c.rep)}/100</p><div class="repbar"><i style="width:${c.rep}%"></i>${marks.map(([t,v])=>`<span style="left:${v}%">${t}</span>`).join('')}</div>
-    <p>Win games, make finals and win titles to build it. Origin teams start calling at ${ORIGIN_REP}, national teams from 45. Offers arrive at the end of each season.</p>
+    <p>Every game you coach moves it: a win is +2 (more against a better side), a draw +0.5, a loss −1. Finals wins count extra. At season's end you get a bonus for the top 8 (+4), top 4 (+2 more), minor premiership (+3) and a premiership (+10), and lose 3 for finishing in the bottom four. Origin teams start calling at ${ORIGIN_REP}, so a winning first season usually earns an Origin job for season two. Pacific nations call from 50, New Zealand and England from 65, Australia from 80. Coach a rep team and you can play as them in Quick Match. Offers arrive at the end of each season.</p>
     <p><b>Origin:</b> ${c.roles.origin?esc(REP_TEAMS[c.roles.origin].name):'not coaching'} · <b>International:</b> ${c.roles.nation?esc(REP_TEAMS[c.roles.nation].name):'not coaching'}</p></div>`));
   if(c.phase==='offseason') renderOffers(B);
   const g=c.origin.games; const og=el('<div class="card2" style="margin-top:10px"><p class="lbl">ORIGIN SERIES '+c.year+' · AFTER ROUNDS '+ORIGIN_ROUNDS.map(r=>r).join(', ')+'</p><ul class="news" id="orList"></ul></div>'); B.appendChild(og);
