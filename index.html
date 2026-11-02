@@ -176,6 +176,7 @@ input.tx.nm{width:100%;font-size:14px;padding:3px 5px}
 input[type=color]{width:38px;height:28px;border:2px solid #000;padding:0;background:none}
 .stars{color:var(--amber);letter-spacing:-1px;white-space:nowrap}
 .oop{display:block;font-size:9px;color:var(--alert);letter-spacing:.04em}
+.ppos{display:block;font-size:10px;color:var(--chalk);letter-spacing:.04em}
 .ovr{font-family:var(--display);font-size:12px;font-weight:700;color:var(--chalk);letter-spacing:0;margin-left:6px}
 .potst{color:var(--amber);opacity:.38}
 .potn{font-family:var(--display);font-size:10px;color:var(--muted);letter-spacing:0;margin-left:1px}
@@ -2428,7 +2429,7 @@ function renderCE(){
   const t=$('ceTable'); t.innerHTML='<tr><th>POS</th><th>NAME</th><th>AGE</th>'+keys.map(k=>'<th>'+k[1]+'</th>').join('')+'<th>OVR</th></tr>';
   const st=lineupOf(cl), order=[...st,...cl.players.filter(p=>!st.includes(p))];
   order.forEach((p,idx)=>{ const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${idx<9?p.pos:'INT'}</td><td><input class="tx nm" maxlength="22" autocomplete="off" aria-label="Player name"></td><td>${p.age}</td>`+keys.map(k=>{ const v=Math.round(p.r[k[0]]*99); return `<td class="${v>=75?'hi':v<50?'lo':''}">${v}</td>`; }).join('')+`<td class="stars" title="${ovr(p)} overall">${rateHtml(p)}${badge(p)?' <span class="tag2 hot">'+badge(p)+'</span>':''}</td>`;
+    tr.innerHTML=`<td>${idx<9?p.pos:'INT<small class="ppos" title="'+POSNAME[p.pos]+'">'+p.pos+'</small>'}</td><td><input class="tx nm" maxlength="22" autocomplete="off" aria-label="Player name"></td><td>${p.age}</td>`+keys.map(k=>{ const v=Math.round(p.r[k[0]]*99); return `<td class="${v>=75?'hi':v<50?'lo':''}">${v}</td>`; }).join('')+`<td class="stars" title="${ovr(p)} overall">${rateHtml(p)}${badge(p)?' <span class="tag2 hot">'+badge(p)+'</span>':''}</td>`;
     const inp=tr.querySelector('input'); inp.value=p.name; inp.title=POSNAME[p.pos];
     inp.addEventListener('change',()=>{ const v=inp.value.trim().replace(/\s+/g,' ').slice(0,22); if(v){ p.name=v; saveLeague(); } else inp.value=p.name; });
     t.appendChild(tr); });
@@ -2815,7 +2816,7 @@ function hubSquad(B){
   const rows=[...st.map((p,k)=>({p,lab:ORDER[k][0],slot:true})),...bench.map(p=>({p,lab:'INT'})),...rest.map(p=>({p,lab:p.inj?'INJ':'RES'}))];
   rows.forEach(({p,lab,slot},idx)=>{ const tr=document.createElement('tr'); if(swapSel===p.id) tr.className='me';
     if(idx===9||idx===13) tr.style.borderTop='2px solid #000';
-    const oop=slot&&p.pos!==lab?`<small class="oop" title="Usually plays ${POSNAME[p.pos]}">${p.pos}</small>`:'';
+    const oop=slot?(p.pos!==lab?`<small class="oop" title="Usually plays ${POSNAME[p.pos]}">${p.pos}</small>`:''):`<small class="ppos" title="${POSNAME[p.pos]}">${p.pos}</small>`;
     tr.innerHTML=`<td title="${slot?POSNAME[lab]:lab==='INT'?'Interchange':lab==='INJ'?'Injured':'Reserve'}">${lab}${oop}</td><td><input class="tx nm" maxlength="22" autocomplete="off" aria-label="Player name"></td><td>${p.age}</td>`+keys.map(k=>{ const v=Math.round(p.r[k[0]]*99); return `<td class="${v>=75?'hi':v<50?'lo':''}">${v}</td>`; }).join('')
       +`<td class="stars" title="${ovr(p)} overall">${rateHtml(p)}${badge(p)?' <span class="tag2 hot">'+badge(p)+'</span>':''}${!p.grow&&ovr(p)<potOf(p)?'<span class="xpbar" title="Form XP: '+Math.floor(p.xp||0)+'/'+XP_LV+' to the next +1"><i style="width:'+Math.round(clamp((p.xp||0)/XP_LV,0,1)*100)+'%"></i></span>':''}${p.inj?' <span class="tag2 inj">'+p.inj+'W</span>':''}</td><td></td><td></td>`;
     const inp=tr.querySelector('input'); inp.value=p.name; inp.title=POSNAME[p.pos];
