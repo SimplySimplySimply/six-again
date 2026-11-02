@@ -212,6 +212,17 @@ select.sel{font-family:var(--body);font-size:14px;background:#0e1914;color:var(-
 .club.locked{opacity:.45}
 .kitMini{width:22px;height:34px;image-rendering:pixelated;margin:0 4px}
 .kitRow{gap:6px;flex-wrap:wrap}
+.repT{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px;min-width:640px}
+.repT th{font-family:var(--display);font-size:10px;color:var(--muted);text-align:center;padding:4px 6px;letter-spacing:.06em;white-space:nowrap}
+.repT td{padding:5px 6px;border-bottom:1px solid #22362c;text-align:center;white-space:nowrap}
+.repT .l{text-align:left}
+.repT td.spot{font-family:var(--display);color:var(--amber);font-size:11px;text-align:left}
+.repT td.form,.repT td.tagc{font-family:var(--display);font-size:10px;color:var(--chalk);letter-spacing:.03em}
+.repT td.tagc{color:var(--muted)}
+.repT td.oopT{color:var(--alert)}
+.repT tr.gap td{border-top:2px solid #000}
+.repT.choose tr{cursor:pointer}
+.repT.choose tr:hover td,.repT.choose tr.me td{background:rgba(255,178,46,.12)}
 .presetGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
 .preset{display:flex;flex-direction:column;align-items:center;gap:4px;background:#0e1914;border:2px solid #000;padding:8px 4px 6px;cursor:pointer;min-width:0;color:var(--chalk)}
 .preset canvas{width:33px;height:51px;image-rendering:pixelated}
@@ -3087,7 +3098,7 @@ function hubRep(B){
   const c=C(); ensureCareer();
   const marks=[['ORIGIN',ORIGIN_REP],['PACIFIC',50],['NZ / ENG',65],['AUSTRALIA',80]];
   B.appendChild(el(`<div class="card2"><p class="lbl">COACHING REPUTATION · ${Math.round(c.rep)}/100</p><div class="repbar"><i style="width:${c.rep}%"></i>${marks.map(([t,v])=>`<span style="left:${v}%">${t}</span>`).join('')}</div>
-    <p>Every game you coach moves it: a win is +2 (more against a better side), a draw +0.5, a loss −1. Finals wins count extra. At season's end you get a bonus for the top 8 (+4), top 4 (+2 more), minor premiership (+3) and a premiership (+10), and lose 3 for finishing in the bottom four. Origin teams start calling at ${ORIGIN_REP}, so a winning first season usually earns an Origin job for season two. Pacific nations call from 50, New Zealand and England from 65, Australia from 80. Coach a rep team and you can play as them in Quick Match. Offers arrive at the end of each season.</p>
+    <p>Win games and make the finals to build your reputation; rep teams offer you jobs at the end of each season. Coach a rep team and you can play as them in Quick Match.</p>
     <p><b>Origin:</b> ${c.roles.origin?esc(REP_TEAMS[c.roles.origin].name):'not coaching'} · <b>International:</b> ${c.roles.nation?esc(REP_TEAMS[c.roles.nation].name):'not coaching'}</p></div>`));
   if(c.phase==='offseason') renderOffers(B);
   const g=c.origin.games; const og=el('<div class="card2" style="margin-top:10px"><p class="lbl">ORIGIN SERIES '+c.year+' · AFTER ROUNDS '+ORIGIN_ROUNDS.map(r=>r).join(', ')+'</p><ul class="news" id="orList"></ul></div>'); B.appendChild(og);
@@ -3105,14 +3116,34 @@ function renderRepPicker(B,key){
   const sel=c.repSel[key];
   B.appendChild(el(`<p class="lbl" style="margin-top:10px">${esc(REP_TEAMS[key].name.toUpperCase())} · ${pool.length} ELIGIBLE PLAYERS${pool.length<13?' · GAPS ARE FILLED BY PLAYERS FROM OVERSEAS LEAGUES':''}</p>`));
   const row=el('<div class="row" style="margin-top:0"></div>'); const ab=document.createElement('button'); ab.type='button'; ab.className='pxbtn ghost sm'; ab.textContent='PICK THE BEST FOR ME'; ab.onclick=()=>{ c.repSel[key]=autoPickIds(key); saveLeague(); renderHub(); }; row.appendChild(ab); B.appendChild(row);
-  const g=el('<div class="cards2"></div>'); B.appendChild(g);
-  const slots=[...ORDER.map(o=>POSNAME[o[0]]),'Bench forward','Bench forward','Bench forward','Bench back'];
-  slots.forEach((lab,k)=>{ const box=el(`<label class="card2" style="display:flex;flex-direction:column;gap:6px"><span class="lbl">${lab.toUpperCase()}</span></label>`); const s=document.createElement('select'); s.className='sel';
+  const tb=document.createElement('table'); tb.className='repT';
+  tb.innerHTML='<tr><th>SPOT</th><th class="l">PLAYER</th><th>CLUB</th><th>PLAYS</th><th>RATING</th><th>FORM</th><th></th></tr>';
+  REP_SLOTS.forEach((lab,k)=>{ const x=sel[k]&&byId[sel[k]], tr=document.createElement('tr'); if(k===9) tr.className='gap';
     const want=k<9?ORDER[k][0]:null;
-    s.appendChild(new Option('Overseas player','')); 
-    for(const {p,ci} of [...pool].sort((a,b)=>(want?(b.p.pos===want)-(a.p.pos===want):0)||ovr(b.p)-ovr(a.p))){ const o=new Option(nameTag(p)+' · '+clubs()[ci].abbr+' · '+p.pos+' · '+starStr(stars(p)),p.id); if(sel[k]===p.id) o.selected=true; s.appendChild(o); }
-    s.onchange=()=>{ const v=s.value||null; const other=v?sel.indexOf(v):-1; if(other>=0&&other!==k) sel[other]=sel[k]; sel[k]=v; saveLeague(); renderHub(); };
-    box.appendChild(s); g.appendChild(box); });
+    if(x){ const p=x.p, oop=want&&p.pos!==want;
+      tr.innerHTML=`<td class="spot">${lab.toUpperCase()}</td><td class="l nm"></td><td>${esc(clubs()[x.ci].abbr)}</td><td class="${oop?'oopT':''}">${POSNAME[p.pos].toUpperCase()}</td><td class="stars">${rateHtml(p)}</td><td class="form">${formStr(p)}</td><td></td>`;
+      tr.querySelector('.nm').textContent=nameTag(p); }
+    else tr.innerHTML=`<td class="spot">${lab.toUpperCase()}</td><td class="l nm" style="color:var(--muted)">Overseas player</td><td>–</td><td>–</td><td>–</td><td>–</td><td></td>`;
+    const bt=document.createElement('button'); bt.type='button'; bt.className='pxbtn sm'; bt.textContent='CHANGE'; bt.onclick=()=>openRepPick(key,k); tr.lastElementChild.appendChild(bt); tb.appendChild(tr); });
+  const w=el('<div class="tblwrap"></div>'); w.appendChild(tb); B.appendChild(w);
+}
+const REP_SLOTS=['Fullback','Winger','Centre','Winger','Five-eighth','Halfback','Prop','Hooker','Lock','Bench forward','Bench forward','Bench forward','Bench back'];
+function formStr(p){ const s=p.st&&p.st.gp!=null?p.st:null; if(!s||!s.gp) return '<span style="color:var(--muted)">no games</span>'; return `${s.gp} GP · ${s.t} T · ${s.m} M${s.v?' · '+s.v+' V':''}`; }
+function openRepPick(key,k){
+  const c=C(), sel=c.repSel[key], pool=eligibleFor(key), want=k<9?ORDER[k][0]:null, fwdSpot=k>=9&&k<12, backSpot=k===12;
+  const fit=p=>want?p.pos===want:fwdSpot?isFwd(p.pos):backSpot?!isFwd(p.pos):false;
+  const list=[...pool].sort((a,b)=>fit(b.p)-fit(a.p)||ovr(b.p)-ovr(a.p));
+  const ov=el(`<div class="overlay" id="repPick" style="z-index:60"><div class="panel"><div class="row" style="margin-top:0"><h2 style="margin:0">PICK ${esc(REP_SLOTS[k].toUpperCase())}</h2><span class="grow"></span><button class="pxbtn ghost sm" type="button" id="rpClose">CLOSE</button></div>
+    <p class="lbl">${esc(REP_TEAMS[key].name.toUpperCase())} · BEST FITS FOR THIS SPOT FIRST · TAP A PLAYER</p><div class="tblwrap"><table class="repT choose"></table></div></div></div>`);
+  const tb=ov.querySelector('table'); tb.innerHTML='<tr><th class="l">PLAYER</th><th>CLUB</th><th>PLAYS</th><th>RATING</th><th>FORM</th><th></th></tr>';
+  const close=()=>ov.remove();
+  const choose=id=>{ const other=id?sel.indexOf(id):-1; if(other>=0&&other!==k) sel[other]=sel[k]; sel[k]=id; saveLeague(); close(); renderHub(); };
+  for(const {p,ci} of list){ const tr=document.createElement('tr'), at=sel.indexOf(p.id); if(at===k) tr.className='me';
+    tr.innerHTML=`<td class="l nm"></td><td>${esc(clubs()[ci].abbr)}</td><td class="${fit(p)?'':'oopT'}">${POSNAME[p.pos].toUpperCase()}</td><td class="stars">${rateHtml(p)}</td><td class="form">${formStr(p)}</td><td class="tagc">${at===k?'PICKED':at>=0?'IN SQUAD · '+esc(REP_SLOTS[at].toUpperCase()):''}</td>`;
+    tr.querySelector('.nm').textContent=nameTag(p); tr.onclick=()=>choose(p.id); tb.appendChild(tr); }
+  const tr=document.createElement('tr'); tr.innerHTML='<td class="l nm" style="color:var(--muted)">Overseas player</td><td>–</td><td>–</td><td>–</td><td>–</td><td></td>'; tr.onclick=()=>choose(null); tb.appendChild(tr);
+  ov.querySelector('#rpClose').onclick=close; ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+  $('careerHub').parentNode.appendChild(ov);
 }
 
 // ---------------------------------------------------------------- loop
