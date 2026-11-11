@@ -38,20 +38,20 @@ button{font:inherit;color:inherit}
 #hud{position:absolute;inset:0;pointer-events:none}
 #hud button{pointer-events:auto}
 #pauseBtn{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px))}
-#board{position:absolute;top:calc(6px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;background:rgba(6,12,9,.86);padding:5px 10px;font-family:var(--display);font-size:12px;border:2px solid #000;box-shadow:0 2px 0 #000;white-space:nowrap}
-#board b{color:var(--amber);font-size:18px;font-variant-numeric:tabular-nums;min-width:1.2em;text-align:center}
+#board{position:absolute;top:calc(4px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:rgba(6,12,9,.8);padding:2px 8px;font-family:var(--display);font-size:11px;border:2px solid #000;box-shadow:0 2px 0 #000;white-space:nowrap}
+#board b{color:var(--amber);font-size:15px;font-variant-numeric:tabular-nums;min-width:1.2em;text-align:center}
 #board .sw{width:8px;height:12px;display:inline-block;border:1px solid #000}
 #board i{color:var(--muted);font-style:normal}
 #clock{color:var(--muted);margin-left:6px;font-variant-numeric:tabular-nums}
-#tackle{position:absolute;top:calc(6px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));background:rgba(6,12,9,.86);border:2px solid #000;padding:5px 9px;font-family:var(--display);text-align:right}
-#tkTxt{display:block;font-size:13px;color:var(--chalk)}
+#tackle{position:absolute;top:calc(4px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));background:rgba(6,12,9,.8);border:2px solid #000;padding:3px 8px;font-family:var(--display);display:flex;align-items:center;gap:7px}
+#tkTxt{display:block;font-size:11px;color:var(--chalk)}
 #tkTxt.last{color:var(--alert)}
-#pips{display:flex;gap:3px;justify-content:flex-end;margin-top:4px}
+#pips{display:flex;gap:3px;justify-content:flex-end}
 #pips span{width:9px;height:6px;background:#2b3a32}
 #pips span.on{background:var(--amber)}
-#chip{position:absolute;top:calc(52px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));font-family:var(--display);font-size:10px;letter-spacing:.06em;background:rgba(6,12,9,.78);padding:4px 7px;color:var(--muted);max-width:44vw;text-align:right}
+#chip{position:absolute;top:calc(32px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));font-family:var(--display);font-size:9px;letter-spacing:.05em;background:rgba(6,12,9,.6);padding:2px 6px;color:var(--muted);max-width:44vw;text-align:right}
 #chip em{color:var(--amber);font-style:normal}
-#carrier{position:absolute;left:calc(56px + env(safe-area-inset-left,0px));top:calc(9px + env(safe-area-inset-top,0px));font-family:var(--display);font-size:11px;background:rgba(6,12,9,.78);padding:4px 8px;display:flex;align-items:center;gap:8px}
+#carrier{position:absolute;left:calc(56px + env(safe-area-inset-left,0px));top:calc(6px + env(safe-area-inset-top,0px));font-family:var(--display);font-size:10px;background:rgba(6,12,9,.7);padding:3px 7px;display:flex;align-items:center;gap:8px}
 #carrier .bar{width:60px;height:6px;background:#2b3a32;display:inline-block}
 #carrier .bar i{display:block;height:100%;background:var(--good)}
 #shapeBtn{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));font-size:14px;padding:9px 12px;text-align:center}
@@ -229,10 +229,10 @@ select.sel{font-family:var(--body);font-size:14px;background:#0e1914;color:var(-
 .preset small{font-size:11px;color:var(--muted);text-align:center;line-height:1.2}
 .preset:hover,.preset:focus-visible{border-color:var(--amber);outline:none}
 textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;line-height:1.3;resize:vertical;word-break:break-all}
-#tutBar{position:absolute;top:calc(48px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));background:rgba(6,12,9,.86);border:2px solid #000;padding:5px 8px;font-family:var(--display);font-size:10px;letter-spacing:.05em;color:var(--chalk);max-width:46vw}
+#tutBar{position:absolute;top:calc(40px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));background:rgba(6,12,9,.7);border:2px solid #000;padding:2px 6px;font-family:var(--display);font-size:9px;letter-spacing:.04em;color:var(--chalk);max-width:40vw;display:flex;align-items:center;gap:6px;white-space:nowrap}
 #tutBar em{color:var(--amber);font-style:normal}
-#tutBar .tp{display:flex;gap:3px;margin-top:4px}
-#tutBar .tp i{width:12px;height:6px;background:#2b3a32}
+#tutBar .tp{display:flex;gap:2px}
+#tutBar .tp i{width:8px;height:5px;background:#2b3a32}
 #tutBar .tp i.on{background:var(--good)}
 #tipModal{align-items:center;z-index:30}
 #tipModal .panel{border-color:var(--amber)}
@@ -278,7 +278,7 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
       <div class="homeGrid">
         <div class="homeTitle"><h1>SIX<br>AGAIN</h1><p>Rugby league, 9-a-side. Six tackles to make it count.</p><canvas id="homeKits" width="340" height="40"></canvas></div>
         <div class="homeMenu">
-          <button class="pxbtn big" id="hTut" type="button">TUTORIAL<small>ABOUT 3 MIN</small></button>
+          <button class="pxbtn big" id="hTut" type="button">TUTORIAL<small>ABOUT 4 MIN</small></button>
           <button class="pxbtn big" id="hResume" type="button" hidden>RESUME MATCH<small id="hResumeTxt"></small></button>
           <button class="pxbtn big" id="hQuick" type="button">QUICK MATCH</button>
           <button class="pxbtn big" id="hCareer" type="button">CAREER</button>
@@ -325,15 +325,15 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
       <h2>HOW TO PLAY</h2>
       <p>Hold your phone sideways. You attack up the field, and the whole width of the pitch fits on screen.</p>
       <div class="how">
-        <div><b>LEFT THUMB · RUN</b><p>Touch anywhere on the left and drag to steer. Push up to sprint, which burns stamina.</p></div>
+        <div><b>LEFT THUMB · RUN</b><p>Your ball carrier runs forward on his own. Touch anywhere on the left and drag to steer him into a gap. Push up to sprint, which burns stamina.</p></div>
         <div><b>RIGHT THUMB · PASS</b><p>Swipe left or right. Short swipe hits the nearest runner. Long swipe throws a cut-out over one or two players.</p></div>
         <div><b>PASSING SKILL</b><p>Good passers (high HAN) throw flat, fast balls that beat a rushing line and are hard to intercept. Poor passers loop it, giving defenders time to read it.</p></div>
         <div><b>SHAPE</b><p>Tap SHAPE at the ruck. Your halfback is first receiver. Swipe sideways to hit the front-door forward, or sideways and down to go out the back. With room on the open side you get a second shape further out, and your back-door player can do it again.</p></div>
         <div><b>TRICKS</b><p>Swipe against the way you're running for an inside ball. Swipe one way then back for a dummy. Swipe while being tackled to offload.</p></div>
         <div><b>TAP · BEAT YOUR MAN</b><p>Tap the right side to side step, or to goose step when a defender comes across at you. Hold a direction on the left thumb to choose your step. Tap just as you're hit to break the tackle. Backs fend, forwards bump off.</p></div>
         <div><b>KICK · SWIPE UP</b><p>Swipe forward to kick. Direction aims, length sets distance. A short swipe grubbers it along the ground. A longer swipe punts it, or bombs it inside their 35. Aim a punt through the posts for a field goal. The yellow marker shows the kick and where it lands. On a bomb, tap when TAP NOW! shows to send your chaser up for the ball. Good kickers land it close to the marker; poor kickers can shank it.</p></div>
-        <div><b>DEFENCE</b><p>Pick a line speed before each of their sets and watch it play out. Change it between tackles. Use &#9654;&#9654; to speed up. KILL hits hardest, but high tackles give away penalties and can get your players sin-binned or sent off.</p></div>
-        <div><b>DIFFICULTY</b><p>AMATEUR, PRO or ELITE change how fast and sharp the other team is. ADAPTIVE gets harder as you win and easier as you lose. Change it on the home screen or in the pause menu.</p></div>
+        <div><b>DEFENCE</b><p>Pick a line speed the first time they get the ball each half and watch it play out. Change it any time from the bar at the bottom; it kicks in at the next play-the-ball. Use &#9654;&#9654; to speed up. KILL hits hardest, but high tackles give away penalties and can get your players sin-binned or sent off.</p></div>
+        <div><b>DIFFICULTY</b><p>AMATEUR, PRO or ELITE change how fast and sharp the other team is. ADAPTIVE (where you start) gets harder as you win and easier as you lose. Change it on the home screen or in the pause menu.</p></div>
         <div><b>GOAL KICKS</b><p>Tap to lock your aim, then tap to set power. Watch the wind.</p></div>
       </div>
       <p class="lbl" style="margin-top:10px">KEYBOARD: ARROWS RUN · Q/E PASS (SHIFT = FLAT) · Z/C CUT-OUT · X DUMMY · SPACE STEP · K KICK · F FAST-FORWARD</p>
@@ -480,7 +480,7 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
 (()=>{
 'use strict';
 // ---------------------------------------------------------------- basics
-const FW=68, IG=8, V=20;
+const FW=68, IG=8, V=23;
 const rnd=Math.random, clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 const pick=a=>a[Math.floor(rnd()*a.length)];
 const hyp=Math.hypot;
@@ -767,7 +767,7 @@ const MSAVE={ref:null,q:Promise.resolve(),pending:null,last:0};
 function matchSnap(extra){
   const s={v:1,at:Date.now(),sides:G.sides,len:G.len,ctx:(G.opts&&G.opts.ctx)||null,
     score:[...G.score],half:G.half,clock:G.clock,poss:G.poss,tackles:G.tackles,maxT:G.maxT,x:G.ptb.x,y:G.ptb.y,kick:null,
-    firstRecv:G.firstRecv,stats:G.stats,ps:G.ps,lineSpeed:[...G.lineSpeed],tryRecs:G.tryRecs,ic:G.ic,golden:!!G.golden,hooterDone:!!G.hooterDone,bench:G.bench,
+    firstRecv:G.firstRecv,stats:G.stats,ps:G.ps,lineSpeed:[...G.lineSpeed],tryRecs:G.tryRecs,ic:G.ic,golden:!!G.golden,goldenEnd:G.goldenEnd||0,hooterDone:!!G.hooterDone,bench:G.bench,
     players:G.P.map(T=>T.map(p=>({rec:p.rec,body:p.body,name:p.name,r:p.r,skin:p.skin,hair:p.hair,stam:+p.stam.toFixed(3),off:!!p.off,bin:!!p.bin,binT:p.binT||0,hurt:!!p.hurt}))),hurt:G.hurt,sent:G.sent,
     label:G.t[0].abbr+' '+G.score[0]+'–'+G.score[1]+' '+G.t[1].abbr+' · '+fmtClock()};
   return Object.assign(s,extra||{});
@@ -787,7 +787,7 @@ function resumeMatch(S){
   const opts=ctxOpts(S.ctx); if(opts===null){ clearMatchSave(); return false; }
   audio(); goFull(); ['home','menu','careerHub'].forEach(id=>$(id).hidden=true);
   setupMatch(S.sides[0],S.sides[1],S.len,opts);
-  Object.assign(G,{score:[...S.score],half:S.half,clock:S.clock,stats:S.stats,lineSpeed:[...S.lineSpeed],tryRecs:S.tryRecs,ic:S.ic,golden:!!S.golden,hooterDone:!!S.hooterDone,bench:S.bench,firstRecv:S.firstRecv});
+  Object.assign(G,{score:[...S.score],half:S.half,clock:S.clock,stats:S.stats,lineSpeed:[...S.lineSpeed],tryRecs:S.tryRecs,ic:S.ic,golden:!!S.golden,goldenEnd:S.goldenEnd||0,hooterDone:!!S.hooterDone,bench:S.bench,firstRecv:S.firstRecv});
   G.officials=mkOfficials(); if(S.ps) G.ps=S.ps;
   S.players.forEach((T,ti)=>T.forEach((d,k)=>{ const p=G.P[ti][k]; if(!p) return; Object.assign(p,{rec:d.rec,body:d.body||p.body,name:d.name,short:d.name.split(' ').slice(-1)[0],r:{...d.r},skin:d.skin,hair:d.hair,stam:d.stam,off:!!d.off,bin:!!d.bin,binT:d.binT||0,hurt:!!d.hurt}); }));
   G.hurt=S.hurt||[]; G.sent=S.sent||[];
@@ -806,7 +806,7 @@ function mkSquad(side,ti){
 }
 // difficulty: AMATEUR 0, PRO 1, ELITE 2. ADAPTIVE drifts with your results and nudges with the scoreline.
 const DIFFS=[['amateur','AMATEUR'],['pro','PRO'],['elite','ELITE'],['adaptive','ADAPTIVE']];
-let DIFF=store.get('diff','pro'), ADAPT=store.get('adapt',1);
+let DIFF=store.get('diff','adaptive'), ADAPT=store.get('adapt',.4); // new players start on ADAPTIVE at amateur level, and it climbs as they win
 function diffL(){
   if(G.opts&&G.opts.tutorial) return 0;
   if(DIFF==='amateur') return 0; if(DIFF==='elite') return 2; if(DIFF!=='adaptive') return 1;
@@ -856,7 +856,9 @@ function after(sec,fn){ G.phase='dead'; G.deadT=sec; G.deadFn=fn; }
 function deadThen(sec,fn){ G.ball.st='dead'; G.contact=null; endKickMenu(); after(sec,()=>stoppage(fn)); }
 function stoppage(fn){ if(G.golden&&G.score[0]!==G.score[1]){ G.golden=false; endHalf(); return; } if(G.hooter){ G.hooter=false; endHalf(); return; } fn(); }
 function tickClock(dt){
-  G.clock+=dt*G.clockK; if(G.golden) return; const end=G.half*2400;
+  G.clock+=dt*G.clockK;
+  if(G.golden){ if(G.goldenEnd&&G.clock>=G.goldenEnd){ G.clock=G.goldenEnd; if(!G.hooter&&!G.hooterDone){ G.hooter=true; G.hooterDone=true; SFX.hooter(); banner('HOOTER','small'); } } return; }
+  const end=G.half*2400;
   if(G.clock>=end){ G.clock=end; if(!G.hooter&&!G.hooterDone){ G.hooter=true; G.hooterDone=true; SFX.hooter(); banner('HOOTER','small'); } }
 }
 
@@ -879,12 +881,13 @@ function matchVotes(){ // 3-2-1 from this match's stat lines
 }
 // ================================================================ TUTORIAL
 const TUT_STEPS=[
-  {id:'run',title:'RUN',text:'Put your left thumb anywhere on the left half of the screen and drag. Push up to run upfield; push further to sprint, which burns the stamina bar. Run 10 metres to tick this off.'},
+  {id:'run',title:'RUN',text:'Your ball carrier always runs forward on his own. Your left thumb steers him: put it anywhere on the left half of the screen and drag left or right to find a gap. Push up to sprint, which burns the stamina bar. Run 10 metres to tick this off.'},
   {id:'pass',title:'PASS',text:'Swipe left or right on the right half of the screen to pass that way. A short swipe hits the nearest runner, a long swipe throws a cut-out. Better passers throw flatter, faster balls. Complete a pass.'},
   {id:'step',title:'BEAT YOUR MAN',text:'Tap the right half of the screen to side step. Hold left or right with your left thumb to pick the direction. Tap just as you’re hit to fend or bump off. Try a step.'},
   {id:'early',title:'PASS FROM THE RUCK',text:'While your tackled player plays the ball, swipe left or right to call the pass early. Your hooker throws it the moment he picks it up. Do it now.'},
-  {id:'kick',title:'KICK',text:'You usually kick on the last tackle. Swipe up to kick: the yellow marker shows the kick and where it lands. A short swipe grubbers along the ground, a longer one punts it, and inside their 35 it’s a bomb.'},
-  {id:'defence',title:'DEFENCE',text:'When they have the ball you pick how fast your line comes up, then watch it play out. Passive holds shape, Medium is balanced, Aggressive rushes, and KILL hits hardest but gives away penalties. Pick one.'}
+  {id:'kick',title:'KICK',text:'This is the last tackle, so kick it before you’re caught with it. Swipe up to kick: the yellow marker shows the kick and where it lands. A short swipe grubbers along the ground, a longer one punts it, and inside their 35 it’s a bomb.'},
+  {id:'defence',title:'DEFENCE',text:'When they have the ball you pick how fast your line comes up, then watch it play out. Passive holds shape, Medium is balanced, Aggressive rushes, and KILL hits hardest but gives away penalties. Pick one.'},
+  {id:'try',title:'SCORE A TRY',text:'Last one: finish it off. Use everything you’ve learned to get over their line and ground the ball, then kick the conversion. Tap once to lock your aim, then tap again to set the power.'}
 ];
 const TUT={on:false,done:{},shown:{},finishAt:0};
 function tutAll(){ return TUT_STEPS.every(s=>TUT.done[s.id]); }
@@ -909,19 +912,20 @@ function tutTick(){
     if(!TUT.done.run){ if(tutTip('run')) return; }
     else if(!TUT.done.pass){ if(tutTip('pass')) return; }
     else if(!TUT.done.step){ if(tutTip('step')) return; }
-    else if(!TUT.done.kick&&TUT.done.early){ if(tutTip('kick')) return; }
+    else if(TUT.done.early&&TUT.done.kick&&TUT.done.defence&&!TUT.done.try){ if(tutTip('try')) return; }
   }
   if(G.phase==='ptb'&&G.poss===0&&G.ptb.t>.25&&TUT.done.pass&&!TUT.done.early){ if(tutTip('early')) return; }
-  if(tutAll()&&(performance.now()>TUT.finishAt||(G.poss===0&&G.phase==='ptb'&&TUT.done.defence&&performance.now()>TUT.finishAt-6000))) tutComplete();
+  if(tutAll()&&!TUT.converting&&(performance.now()>TUT.finishAt||(G.poss===0&&G.phase==='ptb'&&performance.now()>TUT.finishAt-6000))) tutComplete();
 }
-function tutComplete(){
-  TUT.on=false; store.set('tutDone',true); syncTutBar(); SFX.goal();
+function tutComplete(conv){
+  TUT.on=false; TUT.converting=false; store.set('tutDone',true); syncTutBar(); SFX.goal();
   const leave=f=>{ G.paused=false; closeModals(); G.phase='menu'; $('hud').hidden=true; G.t=[null,null]; G.all=[]; G.P=[[],[]]; f(); };
-  tutShow('TUTORIAL COMPLETE','That’s every control. Shape plays (front door and back door) come from the SHAPE button at the ruck, and HOW TO PLAY on the home screen has the full list. Pick a difficulty on the home screen: Amateur, Pro, Elite or Adaptive.','WELL DONE',
+  const lead=conv===true?'Try and conversion. ':conv===false?'Try scored, even if the kick drifted. ':'';
+  tutShow('TUTORIAL COMPLETE',lead+'That’s every control. Shape plays (front door and back door) come from the SHAPE button at the ruck, and HOW TO PLAY on the home screen has the full list. Difficulty starts on Adaptive, which gets harder as you win. You can change it on the home screen.','WELL DONE',
     [['HOME',' ghost',()=>leave(showHome)],['CAREER',' ghost',()=>leave(()=>{ showHome(); openCareer(); })],['QUICK MATCH','',()=>leave(()=>{ showHome(); $('hQuick').click(); })]]);
 }
 function startTutorial(){
-  TUT.on=true; TUT.done={}; TUT.shown={}; TUT.finishAt=0;
+  TUT.on=true; TUT.done={}; TUT.shown={}; TUT.finishAt=0; TUT.converting=false;
   const me=sideFromClub(clubs()[youI]), opp=clubs()[(youI+5)%clubs().length], base=sideFromClub(opp);
   const soft=r=>({...r,id:'tut_'+r.id,r:Object.fromEntries(Object.entries(r.r).map(([k,v])=>[k,+(v*.68).toFixed(3)]))});
   const them={...base,id:'tut',name:'Training Squad',abbr:'TRN',c1:'#8d988f',c2:'#ffb22e',c3:'#3b463f',pat:'band',style:'middle',starters:base.starters.map(soft),bench:[]};
@@ -932,11 +936,12 @@ function startTutorial(){
   G.lineSpeed[1]='passive'; syncTutBar();
 }
 function setupMatch(sA,sB,len,opts={}){
-  G.sides=[sA,sB]; G.opts=opts; G.len=len; G.golden=false; G.tryRecs=[[],[]]; G.ic=[0,0];
+  G.sides=[sA,sB]; G.opts=opts; G.len=len; G.golden=false; G.goldenEnd=0; G.lsHalf=0; G.tryRecs=[[],[]]; G.ic=[0,0];
   G.bench=[(sA.bench||[]).map(r=>({rec:r,stam:1})),(sB.bench||[]).map(r=>({rec:r,stam:1}))];
   G.t=[mkTeam(sA),mkTeam(sB)]; G.P=[mkSquad(sA,0),mkSquad(sB,1)]; G.all=[...G.P[0],...G.P[1]];
   G.ps={}; G.celeb=null; G.fw=[]; G.fwQ=[]; G.assist=null; G.votes=null; G.hurt=[]; G.sent=[]; G.flash=0; for(const T of G.P) for(const p of T) ps(p);
   G.score=[0,0]; G.half=1; G.clock=0; G.clockK=CLOCK_K[len]||CLOCK_K.std; G.hooter=false; G.hooterDone=false;
+  G.poss=0; G.tackles=0; G.maxT=6; G.contact=null; G.queued=null; G.shapeCall=false; // nothing carried over from the last match
   G.stats=[mkStats(),mkStats()]; G.lineSpeed=['medium','medium']; G.pendingLS=null; G.ts=1; G.slow=1; G.floats=[];
   G.P[0].forEach((p,i)=>{p.x=8+i*6.5;p.y=35;}); G.P[1].forEach((p,i)=>{p.x=8+i*6.5;p.y=65;});
   G.cam.y=50; G.paused=false;
@@ -997,7 +1002,8 @@ function startSet(team,x,y,o={}){
   endKickMenu(); G.queued=null; G.ts= team===1? G.ts:1;
   if(team===0) G.lineSpeed[1]=aiPickLS();
   const tap=o.seven||o.tap||o.label==='20M RESTART'||/^TAP/.test(o.label||''); /* tap restarts (20m, penalty tap, after a penalty kick to touch) have no marker */ const go=()=>{ if(o.scrum) beginScrum(x,y); else beginPTB(x,y,null,{teleport:true,tap}); if(o.label) banner(o.label,'small'); if(o.seven) floatTxt('7-TACKLE SET',{x,y}); };
-  if(team===1) openLS(x,y,go); else go();
+  // the full line-speed picker comes up the first time they get a set each half (and in golden point); after that the bar at the bottom does the job
+  if(team===1&&G.lsHalf!==G.half){ G.lsHalf=G.half; openLS(x,y,go); } else go();
 }
 const isFwd=pos=>pos==='PR'||pos==='HK'||pos==='LK';
 const capDef=(y,d)=>d>0?Math.min(y,100):Math.max(y,0);
@@ -1051,7 +1057,7 @@ function beginPTB(x,y,tackled,o={}){
   if(o.teleport) dur=1.2;
   G.ptb={x,y,tackled,dh,t:0,dur,kind,mode:G.ptb.mode};
   if(o.teleport){ for(const p of G.all){ p.x=p.tx; p.y=p.ty; p.vx=p.vy=0; } G.cam.y=camTarget(); }
-  G.phase='ptb'; G.contact=null; G.lbShown=false; G.assist=null;
+  G.phase='ptb'; G.contact=null; G.lbShown=false; G.lbPass=0; G.assist=null;
   saveMatch();
 }
 function attackShape(x,y,d,dh,tackled,mode){
@@ -1206,12 +1212,14 @@ function scoreTry(p){
   G.fw=[]; G.fwQ=(a===0?[.15,.45,.7,1,1.3,1.6,1.95,2.3]:[.25,.8,1.4]).map(t=>({t}));
   const x=clamp(p.x,2,FW-2);
   if(G.golden){ after(3.4,()=>stoppage(()=>kickOff(a))); return; }
+  if(TUT.on&&a===0){ tutDone('try'); if(tutAll()){ TUT.converting=true; after(3.4,()=>startGoalKick(a,'conv',x,null,ok=>tutComplete(ok))); return; } }
   after(3.4,()=>startGoalKick(a,'conv',x,null,()=>stoppage(()=>kickOff(a))));
 }
 function endHalf(){
   G.phase='modal'; endKickMenu(); SFX.whistle();
-  if(G.half===2&&G.opts&&G.opts.final&&G.score[0]===G.score[1]&&!G.golden){
-    G.golden=true; G.half=3; G.hooter=false; G.phase='dead'; banner('GOLDEN POINT'); for(const p of G.all) p.stam=Math.min(1,p.stam+.3);
+  if(G.half===2&&!(G.opts&&G.opts.tutorial)&&G.score[0]===G.score[1]&&!G.golden){
+    // golden point: finals go until someone scores; every other game gets 10 minutes of extra time, then it's a draw (NRL rules)
+    G.golden=true; G.half=3; G.hooter=false; G.hooterDone=false; G.goldenEnd=G.opts&&G.opts.final?0:G.clock+600; G.phase='dead'; banner('GOLDEN POINT'); for(const p of G.all) p.stam=Math.min(1,p.stam+.3);
     after(1.6,()=>kickOff(rnd()<.5?0:1)); return; }
   const full=G.half>=2; if(full){ clearMatchSave(); if(!(G.opts&&G.opts.tutorial)) adaptAfter(); } else saveMatch({half:2,clock:2400,hooterDone:false,kick:1-G.firstRecv,label:G.t[0].abbr+' '+G.score[0]+'–'+G.score[1]+' '+G.t[1].abbr+' · HALF TIME'}); showBreak(full);
 }
@@ -1493,7 +1501,7 @@ function startGoalKick(team,kind,x,spotY,done){
   G.goal={team,kind,label,x,spotY,depth,off,D,k,wind,half,stage:'aim',t:0,aim:0,pow:0,maxD:38+22*k.r.kick,done,
     A:Math.atan(3.4*2.8/D),w:2.0+D/28-k.r.kick*.8,crowd:mkCrowd()};
   G.phase='goal'; showHint('Tap to lock your aim');
-  if(TUT.on&&!TUT.shown.goal){ TUT.shown.goal=true; tutShow('GOAL KICK','A goal kick is two taps. Tap once to lock your aim as it swings across the posts, then tap again to set the power. Fill past the white line to reach, and allow for the wind.','COACH · BONUS'); }
+  if(TUT.on&&!TUT.shown.goal){ TUT.shown.goal=true; tutShow('GOAL KICK','A goal kick is two taps. Tap once to lock your aim as it swings across the posts, then tap again to set the power. Fill past the white line to reach, and allow for the wind.',TUT.converting?'COACH · '+TUT_STEPS.length+' OF '+TUT_STEPS.length:'COACH · BONUS'); }
 }
 function goalTap(){
   const g=G.goal; if(!g) return;
@@ -1554,7 +1562,10 @@ function aiRun(p,dt,a,d){
   accel(p,vx,vy,dt);
   p.decT-=dt; if(p.decT>0) return; p.decT=.15;
   const st=G.t[a].style, last=G.tackles>=G.maxT-1, toLine=(oppTry(a)-p.y)*d, near=nearOpp(p,true);
-  if(last&&G.half===2&&G.clock>4800-300&&toLine<32&&toLine>8&&p.hold>.7){ const diff=G.score[a]-G.score[1-a]; if(diff>=-1&&diff<=0) return fieldGoal(p); }
+  if(G.lbShown&&near<3.6&&(G.lbPass||0)<2&&p.hold>.25){ // line break: draw the last man, then give it to the free support runner
+    const sup=(G.supporters||[]).filter(q=>q.down<=0&&!q.off&&(q.y-p.y)*d<.6&&hyp(q.x-p.x,q.y-p.y)<9&&nearOpp(q)>2.6).sort((q,r)=>nearOpp(r)-nearOpp(q))[0];
+    if(sup){ G.lbPass=(G.lbPass||0)+1; return passBall(p,sup,{flat:true}); } }
+  if(last&&(G.golden||(G.half===2&&G.clock>4800-300))&&toLine<32&&toLine>8&&p.hold>.7){ const diff=G.score[a]-G.score[1-a]; if(diff>=-1&&diff<=0) return fieldGoal(p); }
   if(last){ // last tackle: get it to the kicker and put boot to ball
     const kk=[...G.P[a]].filter(q=>!q.off&&q.down<=0&&q!==p&&['HB','FE','FB'].includes(q.pos)).sort((x,y)=>y.r.kick-x.r.kick)[0];
     const iAmKicker=['HB','FE','FB'].includes(p.pos)||!kk||p.r.kick>=kk.r.kick-.05;
@@ -1867,8 +1878,8 @@ function step(h){
   if(G.phase!=='goal') updOfficials(h);
 }
 function camTarget(){
-  const b=G.ball, d=dirOf(G.poss); let y=b.y+d*3;
-  if(G.phase==='ptb') y=G.ptb.y+d*3;
+  const b=G.ball, d=dirOf(G.poss); let y=b.y+d*3.5; // look a little further ahead so the defensive line sits clear of the scoreboard
+  if(G.phase==='ptb') y=G.ptb.y+d*3.5;
   if(G.phase==='restart'&&G.restart) y=G.restart.y+dirOf(G.restart.kt)*7;
   if(G.phase==='scrum'&&G.scrum) y=G.scrum.y+d*3;
   if(b.st==='air'&&b.kick) y=lerp(b.y,b.kick.land.y,.35);
@@ -2111,7 +2122,7 @@ const setT=(el,v)=>{ if(el.textContent!==v) el.textContent=v; };
 function setupHUD(){
   $('swA').style.background=G.t[0].c1; $('swB').style.background=G.t[1].c1; $('abA').textContent=G.t[0].abbr; $('abB').textContent=G.t[1].abbr;
 }
-function fmtClock(){ const s=Math.floor(G.clock); const m=Math.floor(s/60), ss=s%60; if(G.golden) return 'GOLDEN POINT'; return (G.half===1?'1ST ':'2ND ')+String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
+function fmtClock(){ const s=Math.floor(G.clock); const m=Math.floor(s/60), ss=s%60; if(G.golden){ if(!G.goldenEnd) return 'GOLDEN POINT'; const r=Math.max(0,Math.ceil(G.goldenEnd-G.clock)); return 'GOLDEN PT '+Math.floor(r/60)+':'+String(r%60).padStart(2,'0'); } return (G.half===1?'1ST ':'2ND ')+String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
 function hud(){
   if(!G.t[0]) return;
   setT($('scA'),String(G.score[0])); setT($('scB'),String(G.score[1])); setT($('clock'),fmtClock());
@@ -2143,7 +2154,7 @@ $('ffBtn').addEventListener('click',e=>{ e.stopPropagation(); cycleFF(); });
 function openLS(x,y,go){
   G.phase='modal'; const t=G.t[1], st=STYLES[t.style];
   $('lsTitle').textContent=t.name.toUpperCase()+' BALL';
-  $('lsSub').textContent=`They start at your ${Math.round(y)}m line. Their style: ${st.label.toLowerCase()}. Pick your line speed.`;
+  $('lsSub').textContent=`They start at your ${Math.round(y)}m line. Their style: ${st.label.toLowerCase()}. Pick your line speed. You can change it any time from the bar at the bottom.`;
   const cards=$('lsCards'); cards.innerHTML='';
   for(const k of ['passive','medium','aggressive','kill']){ const L=LS[k]; const b=document.createElement('button'); b.type='button'; b.className='card'+(G.lineSpeed[0]===k?' sel':'')+(k==='kill'?' killc':'');
     b.innerHTML=`<h3>${L.label.toUpperCase()}</h3>${st.counter===k?'<span class="tag">COUNTERS THEIR STYLE</span>':''}<ul>${L.pros.map(s=>`<li class="pro">${s}</li>`).join('')}${L.cons.map(s=>`<li class="con">${s}</li>`).join('')}</ul>`;
@@ -2177,7 +2188,7 @@ function showBreak(full){
   $('brA').textContent=G.t[0].name.toUpperCase(); $('brB').textContent=G.t[1].name.toUpperCase();
   $('brSA').textContent=G.score[0]; $('brSB').textContent=G.score[1];
   const diff=G.score[0]-G.score[1];
-  $('brNote').textContent=full?(diff>0?(G.opts&&G.opts.final?'Through to the next week.':'Two points in the bag.'):diff<0?'Beaten on the night.':'All square at the hooter.'):(diff>0?'You lead at the break.':diff<0?'Work to do in the second half.':'Locked up at the break.');
+  $('brNote').textContent=full?(diff>0?(G.opts&&G.opts.final?'Through to the next week.':'Two points in the bag.'):diff<0?'Beaten on the night.':G.golden?'Nobody could find the winner in golden point.':'All square at the hooter.'):(diff>0?'You lead at the break.':diff<0?'Work to do in the second half.':'Locked up at the break.');
   $('brStats').innerHTML=statRows(); brTeam=0; renderBrPlayers(full);
   const car=G.opts&&G.opts.career; $('brGo').textContent=full?(car?'CONTINUE':'PLAY AGAIN'):'SECOND HALF'; $('brMenu').hidden=!!(full&&car);
   $('breakModal').hidden=false;
@@ -2310,7 +2321,7 @@ $('bkYes').onclick=()=>{ const d=bkPending; if(!d) return; bkPending=null; $('bk
   ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); ensurePotential(LEAGUE); ensureAway(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
   const c=LEAGUE.career; bkMsg('Restored. '+(c?'Your career with '+LEAGUE.clubs[c.club].name+' (season '+c.season+') is ready under CAREER.':'Your clubs and players are back.')); openBackupOut(); };
 async function openBackupOut(){ try{ $('bkOut').value=await makeCode(); }catch(e){} }
-function syncTutBtn(){ const done=store.get('tutDone',false); const b=$('hTut'); b.className='pxbtn '+(done?'ghost':'big'); b.innerHTML=done?'TUTORIAL':'TUTORIAL<small>ABOUT 3 MIN</small>'; }
+function syncTutBtn(){ const done=store.get('tutDone',false); const b=$('hTut'); b.className='pxbtn '+(done?'ghost':'big'); b.innerHTML=done?'TUTORIAL':'TUTORIAL<small>ABOUT 4 MIN</small>'; }
 $('hTut').onclick=()=>{ SFX.blip(); startTutorial(); };
 $('tutGo').onclick=()=>{ G.pendingStart=null; startTutorial(); };
 $('tutSkip').onclick=()=>{ store.set('tutSkip',true); $('tutAsk').hidden=true; const f=G.pendingStart; G.pendingStart=null; if(f) f(); };
@@ -2511,7 +2522,7 @@ function simMatch(h,a,final){
   const d=simStrength(h)-simStrength(a)+1.5;
   const f=lenF(), tA=poisson(clamp((2.7+d*.09)*f,.3,6.5*f)), tB=poisson(clamp((2.7-d*.09)*f,.3,6.5*f));
   const H=simSide(clubs()[h],tA), A=simSide(clubs()[a],tB); let sh=H.pts, sa=A.pts;
-  if(final&&sh===sa){ const w=rnd()<.5+d*.02?H:A; w.L[w.kicker.id].fg++; if(w===H) sh++; else sa++; }
+  if(sh===sa&&(final||rnd()<.85)){ const w=rnd()<.5+d*.02?H:A; w.L[w.kicker.id].fg++; if(w===H) sh++; else sa++; } // golden point field goal
   const sets=()=>Math.max(3,Math.round((10+Math.floor(rnd()*4))*f)), sH=sets(), sA=sets();
   return {h,a,sh,sa,lh:H.L,la:A.L,tmH:teamLine(H.L,sH,Math.round(sH*(.12+rnd()*.15))),tmA:teamLine(A.L,sA,Math.round(sA*(.12+rnd()*.15)))};
 }
