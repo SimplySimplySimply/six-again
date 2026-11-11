@@ -945,12 +945,12 @@ function tutComplete(conv){
 function startTutorial(){
   TUT.on=true; TUT.done={}; TUT.shown={}; TUT.finishAt=0; TUT.converting=false;
   const me=sideFromClub(clubs()[youI]), opp=clubs()[(youI+5)%clubs().length], base=sideFromClub(opp);
-  const soft=r=>({...r,id:'tut_'+r.id,r:Object.fromEntries(Object.entries(r.r).map(([k,v])=>[k,+(v*.68).toFixed(3)]))});
+  const soft=r=>({...r,id:'tut_'+r.id,r:Object.fromEntries(Object.entries(r.r).map(([k,v])=>[k,+(v*.75).toFixed(3)]))});
   const them={...base,id:'tut',name:'Training Squad',abbr:'TRN',c1:'#8d988f',c2:'#ffb22e',c3:'#3b463f',pat:'band',style:'middle',starters:base.starters.map(soft),bench:[]};
   $('home').hidden=true; $('menu').hidden=true; $('tutAsk').hidden=true; audio(); goFull();
   newMatch(me,them,'std',{tutorial:true});
-  // a training squad of five: fullback plus four in the line, all on a passive line
-  const keep=['FB','HK','LK','FE','CE']; G.P[1].forEach(p=>{ if(!keep.includes(p.pos)||G.P[1].filter(q=>q.pos===p.pos).indexOf(p)>0) p.off=true; }); parkOff();
+  // a training squad of seven: fullback plus six in the line, all on a passive line. Enough to stop a straight run, not enough to stop a good one
+  const keep=['FB','HK','LK','FE','CE','PR','HB']; G.P[1].forEach(p=>{ if(!keep.includes(p.pos)||G.P[1].filter(q=>q.pos===p.pos).indexOf(p)>0) p.off=true; }); parkOff();
   G.lineSpeed[1]='passive'; syncTutBar();
 }
 function setupMatch(sA,sB,len,opts={}){
@@ -1089,7 +1089,7 @@ function attackShape(x,y,d,dh,tackled,mode){
   G.pods=[];
   for(const p of A){ p.pod=-1; }
   if(mode==='shape'){ shapePods(x,y,d,dh,tackled,A,open,ow,bw); dh.run=0; dh.front=dh.back=false;
-    tackled.lane=clamp(x-open*2.5,2,FW-2); tackled.depth=3.5; tackled.depth0=3.5; tackled.run=0; tackled.front=tackled.back=false; G.ptb.mode=mode; return; }
+    tackled.lane=clamp(x-open*2.5,2,FW-2); tackled.depth=3.5; tackled.depth0=3.5; tackled.run=0; tackled.front=tackled.back=false; blindSpread(x,y,d,dh,tackled,A,open,ow,bw,true); G.ptb.mode=mode; return; }
   const edge=open>0?FW:0;
   const wgs=A.filter(p=>p.pos==='WG').sort((p,q)=>Math.abs(p.x-edge)-Math.abs(q.x-edge));
   const place=(p,dx,dep,run)=>{ p.lane=clamp(x+open*dx,2,FW-2); p.depth=dep; p.depth0=dep; p.run=run; p.front=run===2; p.back=run===3;
@@ -1099,7 +1099,21 @@ function attackShape(x,y,d,dh,tackled,mode){
     const sl=slot[p.pos]; if(sl) place(p,sl[0],sl[1],sl[2]); }
   dh.run=0; dh.front=dh.back=false;
   tackled.lane=clamp(x-open*2.5,2,FW-2); tackled.depth=3.5; tackled.depth0=3.5; tackled.run=0; tackled.front=tackled.back=false;
+  blindSpread(x,y,d,dh,tackled,A,open,ow,bw,false);
   G.ptb.mode=mode;
+}
+function blindSpread(x,y,d,dh,tackled,A,open,ow,bw,shape){
+  // a wide blind side shouldn't leave the winger stranded on the touchline: bring him in a little, spread an edge forward out towards him,
+  // and on a really wide blind side bring the centre across too
+  if(bw<9) return;
+  const free=p=>p&&!p.off&&p!==dh&&p!==tackled&&!(p.pod>=0), blind=p=>(p.lane-x)*open<0, edge=open>0?0:FW;
+  const set=(p,dx,dep,run)=>{ p.lane=clamp(x+open*dx,2,FW-2); p.depth=dep; p.depth0=dep; p.run=run; p.front=p.back=false; p.ang=run===1?-open*(.3+rnd()*.5):0; p.tx=p.lane; p.ty=clampY(y-d*dep); };
+  const wgD=Math.min(bw-3,Math.max(8,bw*.72)), edgeD=Math.min(Math.max(3.5,bw*.33),7);
+  const wg=A.filter(p=>p.pos==='WG'&&free(p)&&blind(p)).sort((p,q)=>Math.abs(p.lane-edge)-Math.abs(q.lane-edge))[0];
+  if(wg) set(wg,-wgD,3.5,0);
+  const fwd=A.filter(p=>free(p)&&blind(p)&&['LK','PR','HK'].includes(p.pos)).sort((p,q)=>Math.abs(q.lane-x)-Math.abs(p.lane-x))[0];
+  if(fwd) set(fwd,-edgeD,2.8,1);
+  if(!shape&&bw>=18){ const ce=A.find(p=>p.pos==='CE'&&free(p)); if(ce){ set(ce,-(wgD+edgeD)/2,5,0); const fb=A.find(p=>p.pos==='FB'&&free(p)); if(fb) set(fb,Math.max(16,ow*.66),6.6,0); } }
 }
 function shapePods(x,y,d,dh,tackled,A,open,ow,bw){
   // pod 1: first receiver (halfback first choice), front-door forward, back-door back; pod 2 further out when there's room
