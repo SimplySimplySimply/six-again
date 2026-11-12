@@ -1378,12 +1378,13 @@ function doDummy(c,side){
 
 // ---------------------------------------------------------------- kicks
 function bombAim(p,ax,ay,D){
-  // good kickers drop it where they aim, but always in the field. Bad kickers roll the dice and can miss by a mile.
+  // good kickers drop it where they aim, including into the in-goal so a chaser can score from it (never more than 6m past the line).
+  // Bad kickers roll the dice and can miss by a mile.
   const d=dirOf(p.team), tY=oppTry(p.team), kq=p.r.kick; let tx=p.x+ax*D, ty=p.y+ay*D;
-  if((tY-ty)*d<3+rnd()*4) ty=tY-d*(3+rnd()*4);
+  if((ty-tY)*d>6) ty=tY+d*6;
   const shank=rnd()<clamp(.55-.6*kq,.03,.4);
   if(shank){ const e=8+rnd()*14; tx+=(rnd()-.5)*1.6*e; ty-=d*rnd()*e*.9; }
-  else { const e=(rnd()+rnd())*.5*(.6+5*(1-kq)), an=rnd()*Math.PI*2; tx+=Math.cos(an)*e; ty+=Math.sin(an)*e; if((tY-ty)*d<1.5) ty=tY-d*1.5; }
+  else { const e=(rnd()+rnd())*.5*(.6+5*(1-kq)), an=rnd()*Math.PI*2; tx+=Math.cos(an)*e; ty+=Math.sin(an)*e; if((ty-tY)*d>IG-1.5) ty=tY+d*(IG-1.5); }
   const dx=tx-p.x, dy=ty-p.y, n=hyp(dx,dy)||1; return {ax:dx/n,ay:dy/n,D:Math.max(6,n),shank};
 }
 function launch(p,type,ax,ay,D){
@@ -1406,7 +1407,7 @@ function launch(p,type,ax,ay,D){
 function setLooseChase(){ const b=G.ball; G.kchase=new Set(); for(const t of [0,1]) [...G.P[t]].sort((a,c)=>hyp(a.x-b.x,a.y-b.y)-hyp(c.x-b.x,c.y-b.y)).slice(0,2).forEach(q=>G.kchase.add(q)); G.kickLand={x:b.x,y:b.y}; }
 function aiKick(p,a,d){
   const toLine=(oppTry(a)-p.y)*d, st=G.t[a].style, ks=.7+.45*p.r.kick; let type, tx, ty;
-  if(toLine<28){ type=rnd()<.6?'bomb':'grubber'; tx=pick([8,FW-8,34+(rnd()-.5)*20]); ty=oppTry(a)+d*(type==='grubber'?4:-(3+rnd()*7)); }
+  if(toLine<28){ type=rnd()<.6?'bomb':'grubber'; tx=pick([8,FW-8,34+(rnd()-.5)*20]); ty=oppTry(a)+d*(type==='grubber'?4:rnd()<.5?1+rnd()*4:-(2+rnd()*6)); }
   else { const own=(p.y-ownTry(a))*d<50; type='long';
     if(own&&toLine-30<42&&rnd()<(st==='kick'?.35:.12)){ tx=p.x<34?2:FW-2; ty=oppTry(a)-d*30; }
     else { tx=pick([12,FW-12,34]); ty=p.y+d*clamp(32+rnd()*12,10,toLine-12); } }
@@ -1655,9 +1656,10 @@ function defAI(p,dt,f,a,d){
   if(p.down>0){ p.down-=dt; accel(p,0,0,dt); return; }
   const mx=maxSp(p);
   if(!f){ accel(p,0,0,dt); return; }
-  if(p.offside){ // must retreat behind the 10m line (or be passed by the ball) before rejoining play
-    if((p.y-G.onsideY)*d>=-.2||(p.y-f.y)*d<-1) p.offside=false;
-    else { steer(p,p.x,capDef(G.onsideY+d*.8,d),mx*1.15,dt,7); return; } }
+  if(p.offside){ // must get back to within a metre of the 10m line (or be passed by the ball) before he can play at the runner;
+    // until then he retreats and steps out of the runner's way
+    if((p.y-G.onsideY)*d>=-1||(p.y-f.y)*d<-1) p.offside=false;
+    else { const dx=p.x-f.x, side=Math.abs(dx)<3&&hyp(dx,p.y-f.y)<5?Math.sign(dx||1)*2.5:0; steer(p,clamp(p.x+side,1,FW-1),capDef(G.onsideY+d*.8,d),mx*1.15,dt,7); return; } }
   if(p.mHold>0){ p.mHold-=dt; accel(p,0,0,dt); return; }
   if(p.bite>0){ p.bite-=dt; steer(p,p.biteX,p.y,mx*.6,dt); return; }
   const isFB=p.pos==='FB', ahead=(p.y-f.y)*d, dd=hyp(p.x-f.x,p.y-f.y);
@@ -1787,7 +1789,7 @@ function autoKick(c,dx,dy,len,dur){
   const pw=clamp((len-gT)/(full-gT),0,1);
   let D=Math.min(45,(15+30*pw)*ks); const lx=c.x+ax*D, ly=c.y+ay*D, toPosts=hyp(34-c.x,100-c.y);
   if(ly>=100.5&&Math.abs(lx-34)<5.5&&toPosts<42) return {type:'fg',ax,ay,D:toPosts};
-  if(toLine<=35) return {type:'bomb',ax,ay,D:Math.min(D,cap(104))};
+  if(toLine<=35) return {type:'bomb',ax,ay,D:Math.min(D,cap(106))};
   return {type:'long',ax,ay,D:Math.min(D,cap(91))};
 }
 function swipeKick(c,cl,dur){ const k=autoKick(c,cl.dx,cl.dy,cl.len,dur); if(k.type==='fg') return fieldGoal(c); launch(c,k.type,k.ax,k.ay,k.D); }
@@ -1887,7 +1889,7 @@ function stepLive(dt){
 function checkCarrier(c,a,d){
   if(c.x<0||c.x>FW){ tjFlag(c.x<34?0:1); bump(c,'err'); return turnover('INTO TOUCH',c.team,c.x,c.y); }
   if((c.y-oppTry(a))*d>=0) return scoreTry(c);
-  if(!G.contact){ for(const q of G.P[1-a]){ if(q.down>0||q.bite>0||q.off||q.team===c.team) continue; if(hyp(q.x-c.x,q.y-c.y)<(G.lineSpeed[1-a]==='passive'&&Math.abs(oppTry(a)-c.y)<10?1.35:1)*(q.team===1?D3(.85,1.08,1.22):D3(1.15,1,.95))){ if(q.offside){ bump(q,'pen'); return penalty(a,c.x,c.y,'OFFSIDE · INTERFERENCE'); } /* an offside player who gets in the runner's way gives away the penalty */ startContact(c,q); break; } } }
+  if(!G.contact){ for(const q of G.P[1-a]){ if(q.down>0||q.bite>0||q.off||q.team===c.team) continue; if(hyp(q.x-c.x,q.y-c.y)<(G.lineSpeed[1-a]==='passive'&&Math.abs(oppTry(a)-c.y)<10?1.35:1)*(q.team===1?D3(.85,1.08,1.22):D3(1.15,1,.95))){ if(q.offside) continue; /* an offside player can't play at the runner until he's back onside */ startContact(c,q); break; } } }
   if(!G.lbShown&&G.playT>.4&&!G.contact){ const line=G.P[1-a].filter(p=>p.pos!=='FB'); if(line.every(p=>p.down>0||(p.y-c.y)*d<-.6)){ G.lbShown=true; G.stats[a].lb++; bump(c,'lb'); const LA=G.assist; if(LA&&LA.team===a&&LA.to===c.rec&&LA.rec!==c.rec&&G.ps[LA.rec]) G.ps[LA.rec].lba++; banner('LINE BREAK!','small'); SFX.cheer(); } }
 }
 function stepPTB(dt){
