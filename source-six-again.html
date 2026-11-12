@@ -1092,7 +1092,7 @@ function attackShape(x,y,d,dh,tackled,mode){
 }
 function blindSpread(x,y,d,dh,tackled,A,open,ow,bw,shape){
   // a wide blind side shouldn't leave the winger stranded: bring him in off the touchline and put a back in the gap.
-  // The fullback joins the line on a medium blind side; on a really wide one the centre goes there and the fullback stays open.
+  // Whichever of the fullback or centre is closer to the gap goes across.
   // A back only goes across if the open side keeps enough backs to cover it, and the open-side backs then spread out evenly
   if(bw<9) return;
   const free=p=>p&&!p.off&&p!==dh&&p!==tackled&&!(p.pod>=0), blind=p=>(p.lane-x)*open<0, edge=open>0?0:FW, BACKS=['HB','FE','CE','FB','WG'];
@@ -1102,9 +1102,9 @@ function blindSpread(x,y,d,dh,tackled,A,open,ow,bw,shape){
   if(wg) set(wg,-wgD,3.5,0);
   if(bw<12) return;
   const openBacks=()=>A.filter(p=>free(p)&&!blind(p)&&BACKS.includes(p.pos));
-  const pref=bw>=18?['CE','FB']:['FB','CE'], back=pref.map(k=>A.find(p=>p.pos===k&&free(p)&&!blind(p))).find(Boolean);
-  if(!back||openBacks().length-1<Math.ceil(ow/14)) return;
   const fwd=A.filter(p=>free(p)&&blind(p)&&p!==wg&&!BACKS.includes(p.pos)).map(p=>Math.abs(p.lane-x)).sort((a,b)=>b-a)[0]||2.5;
+  const gapX=x-open*(fwd+wgD)/2, back=A.filter(p=>(p.pos==='FB'||p.pos==='CE')&&free(p)&&!blind(p)).sort((p,q)=>Math.abs(p.lane-gapX)-Math.abs(q.lane-gapX))[0];
+  if(!back||openBacks().length-1<Math.ceil(ow/14)) return;
   set(back,-(fwd+wgD)/2,back.pos==='FB'?5:4.5,0);
   if(shape) return;
   const ob=openBacks().sort((p,q)=>Math.abs(p.lane-x)-Math.abs(q.lane-x)); if(ob.length<3) return;
