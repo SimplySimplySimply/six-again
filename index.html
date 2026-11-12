@@ -860,7 +860,7 @@ function steer(p,tx,ty,s,dt,gain=3){ const dx=tx-p.x, dy=ty-p.y, d=hyp(dx,dy); l
 function integrate(p,dt,isCar){
   p.x+=p.vx*dt; p.y+=p.vy*dt; const s=hyp(p.vx,p.vy); p.anim+=s*dt*1.7;
   const base=4.4+3.6*p.r.spd; const fm=(p.team!==G.poss)?LS[G.lineSpeed[p.team]].fat:1;
-  if(s>base*.72) p.stam=Math.max(0,p.stam-dt*.055*fm*(1.25-p.r.sta)); else p.stam=Math.min(1,p.stam+dt*.03);
+  if(s>base*.72) p.stam=Math.max(0,p.stam-dt*.055*fm*(1.25-p.r.sta)*(s>base*(.7+.3*p.stam)*1.02?2:1)); else p.stam=Math.min(1,p.stam+dt*.03);
   if(p.stepT>0)p.stepT-=dt; if(p.jumpT>0)p.jumpT-=dt; if(p.move&&p.move.t>0) p.move.t-=dt; if(p.rejoin>0)p.rejoin-=dt; if(p.cd>0)p.cd-=dt;
   if(isCar){ p.x=clamp(p.x,-2,FW+2); } else p.x=clamp(p.x,.8,FW-.8);
   p.y=clamp(p.y,-IG-2,100+IG+2);
@@ -1122,8 +1122,9 @@ function blindSpread(x,y,d,dh,tackled,A,open,ow,bw,shape){
   if(bw<12) return;
   const openBacks=()=>A.filter(p=>free(p)&&!blind(p)&&BACKS.includes(p.pos));
   const fwd=A.filter(p=>free(p)&&blind(p)&&p!==wg&&!BACKS.includes(p.pos)).map(p=>Math.abs(p.lane-x)).sort((a,b)=>b-a)[0]||2.5;
-  const gapX=x-open*(fwd+wgD)/2, back=A.filter(p=>(p.pos==='FB'||p.pos==='CE')&&free(p)&&!blind(p)).sort((p,q)=>Math.abs(p.lane-gapX)-Math.abs(q.lane-gapX))[0];
-  if(!back||openBacks().length-1<Math.ceil(ow/14)) return;
+  // pick by where they actually are when the tackle's made, so nobody crosses the field when a team-mate is already on that side
+  const gapX=x-open*(fwd+wgD)/2, back=A.filter(p=>(p.pos==='FB'||p.pos==='CE')&&free(p)).sort((p,q)=>Math.abs(p.x-gapX)-Math.abs(q.x-gapX))[0];
+  if(!back||openBacks().length-(blind(back)?0:1)<Math.ceil(ow/14)) return;
   set(back,-(fwd+wgD)/2,back.pos==='FB'?5:4.5,0);
   if(shape) return;
   const ob=openBacks().sort((p,q)=>Math.abs(p.lane-x)-Math.abs(q.lane-x)); if(ob.length<3) return;
@@ -1677,19 +1678,21 @@ function defAI(p,dt,f,a,d){
   if(p.mHold>0){ p.mHold-=dt; accel(p,0,0,dt); return; }
   if(p.bite>0){ p.bite-=dt; steer(p,p.biteX,p.y,mx*.6,dt); return; }
   const isFB=p.pos==='FB', ahead=(p.y-f.y)*d, dd=hyp(p.x-f.x,p.y-f.y);
+  // defenders sprint too: chasing the ball (and running a beaten runner down from behind) they find an extra gear while they have the legs
+  const spr=p.stam>.2?1:.5;
   if(G.chasers.includes(p)||dd<4.5||ahead<-.5||(isFB&&(dd<(Math.abs(f.x-34)>13?15:11)||G.lbShown))){
-    const t=clamp(dd/(mx+.1),0,.6); steer(p,f.x+f.vx*t,f.y+f.vy*t,mx,dt,6); return; }
+    const t=clamp(dd/(mx+.1),0,.6); steer(p,f.x+f.vx*t,f.y+f.vy*t,mx*(1+(ahead<-.5?.15:.12)*spr),dt,6); return; }
   if(p.drop&&!G.lbShown){ steer(p,p.dropX,capDef(f.y+d*p.drop,d),mx*.9,dt,4.5); return; }
   if(isFB){ const wide=clamp((Math.abs(f.x-34)-8)/14,0,1), toTry=Math.abs(ownTry(p.team)-f.y);
     const kickWatch=G.tackles>=G.maxT-1&&!G.lastRun; let dep=kickWatch?Math.max(28,fbDepth(p.team)):fbDepth(p.team); if(wide>0&&!kickWatch) dep=lerp(dep,Math.min(dep,Math.max(6,toTry*.45)),wide);
     steer(p,34+(f.x-34)*lerp(.6,.92,wide),capDef(f.y+d*dep,d),mx*(.9+wide*.1),dt,4.5+wide*1.5); return; }
   if(G.slider===p){ // inside man sliding across to help the edge
-    const t=clamp(dd/(mx+.1),0,.5); steer(p,f.x+f.vx*t-Math.sign(f.x-34)*1.2,capDef(f.y+f.vy*t+d*1.2,d),mx,dt,5.5); return; }
+    const t=clamp(dd/(mx+.1),0,.5); steer(p,f.x+f.vx*t-Math.sign(f.x-34)*1.2,capDef(f.y+f.vy*t+d*1.2,d),mx*(1+.08*spr),dt,5.5); return; }
   const m=p.mark||f; const w=clamp(1-(dd-3)/((G.lineSpeed[p.team]==='passive'?11:8)*(p.team===1?D3(.85,1.15,1.4):D3(1.15,1,1))),0,1);
   const outward=Math.sign(f.vx)===Math.sign(f.x-34)&&Math.abs(f.vx)>1.5; let tx=m.x+Math.sign(f.x-m.x)*.8+(f.x-m.x)*(outward?.22:.12);
   let ty=d>0?Math.max(G.defLineY,m.y+1.3):Math.min(G.defLineY,m.y-1.3);
   tx+=(m.vx||0)*.35; tx=lerp(tx,f.x+f.vx*.3,w*.85); ty=lerp(ty,f.y+d*.8,w*.6);
-  steer(p,clamp(tx,1,FW-1),capDef(ty,d),mx*(.95+w*.05),dt,5.5);
+  steer(p,clamp(tx,1,FW-1),capDef(ty,d),mx*(.95+w*.15*spr),dt,5.5);
 }
 function airAI(p,dt){
   if(p.down>0){ p.down-=dt; accel(p,0,0,dt); return; }
