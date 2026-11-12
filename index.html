@@ -568,10 +568,10 @@ function ensureNats(L){ if(L.nats2) return false; const all=[]; for(const cl of 
   const st={QLD:shuffle(all.filter(p=>p.nat==='AUS'&&p.origin==='QLD')),NSW:shuffle(all.filter(p=>p.nat==='AUS'&&p.origin!=='QLD'))};
   for(const [n,w] of NATS){ if(n==='AUS') continue; let need=Math.round(all.length*w)-(cnt[n]||0);
     while(need-->0&&st.QLD.length+st.NSW.length>all.length*.45){ const p=(st.QLD.length>st.NSW.length?st.QLD:st.NSW).pop(); p.nat=n; p.origin=null; } }
-  if(L.career) L.career.repSel={}; L.nats2=true; return true; }
+  if(L.career) L.career.repSel={}; L.natBase={}; L.nats2=true; return true; }
 // leagues made before Pacific players could play Origin: give them an Origin state at the same rates as new players
 function ensureOrigins(L){ if(L.orig2) return false; for(const cl of L.clubs) for(const p of cl.players) if(p.nat!=='AUS'&&!p.origin) p.origin=originFor(p.nat,cl.state);
-  if(L.career){ for(const p of L.career.market||[]) if(p.nat!=='AUS'&&!p.origin) p.origin=originFor(p.nat,null); L.career.repSel={}; } L.orig2=true; return true; }
+  if(L.career){ for(const p of L.career.market||[]) if(p.nat!=='AUS'&&!p.origin) p.origin=originFor(p.nat,null); L.career.repSel={}; } L.natBase={}; L.orig2=true; return true; }
 function ensureAway(L){ if(L.away1) return false; L.clubs.forEach((cl,i)=>{ if(!cl.a1) setAway(cl,i); }); L.away1=true; return true; }
 // kit colours before version 20, so saved clubs still on them get the new kits
 const OLD_KITS=[['#127c7c','#f2c14e','#0b3d3d','band'],['#57b6e6','#c62f2f','#123a52','v'],['#e8c766','#1d3557','#1d3557','hoops'],['#1f6b45','#f2b632','#0e3322','v'],['#2e3440','#ef7d32','#151820','band'],['#1e2f6b','#a6d608','#101a3d','hoops'],['#e56b1f','#f4f4f4','#3a1a08','v'],['#5b2a86','#f3f3f3','#2a123f','band'],['#7a1e2e','#8ec9ef','#3d0e17','hoops'],['#2a8c4a','#f1f1f1','#123d20','v'],['#1a1a1a','#e2b13c','#0d0d0d','band'],['#1f55c7','#f2f2f2','#0e2a66','v'],['#c8102e','#141414','#141414','hoops'],['#f2f2f2','#6a2c91','#6a2c91','band'],['#f3d02a','#161616','#161616','v'],['#6b3f24','#f08a24','#2e1a0e','band'],['#121212','#23b5b0','#0b0b0b','hoops']];
@@ -2685,7 +2685,7 @@ function offerCtl(p,o){
   w.appendChild(it); w.appendChild(ys); w.appendChild(ms); w.appendChild(b); return w;
 }
 function newCareer(ci){
-  const S0=savedMatch(); if(S0&&S0.ctx) clearMatchSave();
+  const S0=savedMatch(); if(S0&&S0.ctx) clearMatchSave(); LEAGUE.natBase={}; // nations start this career on their rung's strength
   const pays=clubs().map(payroll); const mx=Math.max(...pays);
   LEAGUE.career={club:ci,season:1,year:new Date().getFullYear()+1,round:0,phase:'season',fixtures:roundRobin(clubs().length),results:[],credits:6,
     fac:{train:1,med:1,stad:1},staff:{att:1,def:1,kick:1,rec:1},rep:10,history:[],news:[],roles:{origin:null,nation:null},origin:{games:[]},tests:null,offers:[],repSel:{},cap:Math.round(mx*1.05/50)*50,pending:[],dead:[],persV:1,finals:null,off:null,honours:[],last:null};
@@ -3261,8 +3261,11 @@ function repSide(key,useSel){
   let ids=(useSel&&c&&c.repSel&&c.repSel[key]&&c.repSel[key].length===13)?c.repSel[key]:autoPickIds(key);
   const used=new Set(); const recs=ids.map((id,i)=>{ let p=id&&byId[id]; if(p&&(used.has(p.id)||p.inj)) p=null; if(p){ used.add(p.id); return p; } const pos=i<9?ORDER[i][0]:BENCH[i-9]; return padPlayer(key,pos,i); });
   const T=REP_TEAMS[key], starters=recs.slice(0,9), bench=recs.slice(9,13);
-  // pull each nation most of the way to its rung's strength; the players it actually has still count for a little
-  let lvl=0; if(NATION_TIER[key]){ const o=starters.reduce((s,p)=>s+ovr(p),0)/9, tg=TIER_STR[NATION_TIER[key]]; lvl=+(((tg+(o-tg)*.1)-o)/100).toFixed(3); }
+  // each nation starts at its rung's strength, then rises and falls point for point with its players (up to 10 either way):
+  // young stars coming through lift it, retirements and injuries drag it down
+  let lvl=0; if(NATION_TIER[key]){ const o=starters.reduce((s,p)=>s+ovr(p),0)/9, tg=TIER_STR[NATION_TIER[key]], L=LEAGUE;
+    if(L){ L.natBase=L.natBase||{}; if(L.natBase[key]==null) L.natBase[key]=+o.toFixed(1); }
+    const base=L&&L.natBase?L.natBase[key]:o; lvl=+(((tg+clamp(o-base,-10,10))-o)/100).toFixed(3); }
   return {id:key,name:T.name,abbr:T.abbr,c1:T.c1,c2:T.c2,c3:T.c3,pat:T.pat,style:T.style,rating:.6,starters,bench,lvl};
 }
 function sideOvr(sd){ return sd.starters.reduce((s,p)=>s+ovr(p),0)/9+(sd.lvl||0)*100; }
