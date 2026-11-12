@@ -808,6 +808,7 @@ function mkSquad(side,ti){
     lane:34,depth:3,hot:!!(rec.tr&&rec.tr.includes('hot')),mark:null,bite:0,biteX:0,step:0,stepDir:1,stepT:0,burst:0,hold:0,rejoin:0,tx:34,ty:50,decT:0,dhDone:false,passTried:false,gapX:34,gapT:0,gapScore:0,cd:0});
   const sq=ORDER.map(([pos,num],k)=>mk(side.starters[k],pos,num));
   if(side.boost) for(const p of sq) for(const k in side.boost) p.r[k]=clamp(p.r[k]+side.boost[k],.2,.99);
+  if(side.lvl) for(const p of sq) for(const k in p.r) p.r[k]=clamp(p.r[k]+side.lvl,.2,.99);
   return sq;
 }
 // difficulty: AMATEUR 0, PRO 1, ELITE 2. ADAPTIVE drifts with your results and nudges with the scoreline.
@@ -1020,7 +1021,7 @@ function interchange(t,skip){
   const f=isFwd(tired.pos); const opts=G.bench[t].filter(b=>isFwd(b.rec.pos)===f&&b.stam>(tired.hurt?.3:.75)&&!G.hurt.includes(b.rec.id)); if(!opts.length) return;
   const on=opts.sort((a,b)=>ovr(b.rec)-ovr(a.rec))[0]; const offRec=G.sides[t].starters.find(r=>r.id===tired.rec)||{id:tired.rec,name:tired.name,r:tired.r,pos:tired.pos,skin:tired.skin,hair:tired.hair};
   const offSt=tired.stam; const rec=on.rec;
-  tired.name=rec.name; tired.short=rec.name.split(' ').slice(-1)[0]; tired.r={...rec.r}; if(G.sides[t].boost) for(const k in G.sides[t].boost) tired.r[k]=clamp(tired.r[k]+G.sides[t].boost[k],.2,.99);
+  tired.name=rec.name; tired.short=rec.name.split(' ').slice(-1)[0]; tired.r={...rec.r}; if(G.sides[t].boost) for(const k in G.sides[t].boost) tired.r[k]=clamp(tired.r[k]+G.sides[t].boost[k],.2,.99); if(G.sides[t].lvl) for(const k in tired.r) tired.r[k]=clamp(tired.r[k]+G.sides[t].lvl,.2,.99);
   tired.rec=rec.id; tired.body=rec.pos||tired.pos; tired.skin=rec.skin; tired.hair=rec.hair; tired.stam=1; tired.hurt=false; tired.legend=!!rec.legend;
   on.rec=offRec; on.stam=offSt; G.ic[t]++; floatTxt('INTERCHANGE',tired);
 }
@@ -3202,8 +3203,11 @@ const REP_TEAMS={
 };
 REP_READY=true; setTimeout(()=>{ if(LEAGUE) syncMenu(); },0);
 const ORIGIN_ROUNDS=[5,9,13], TEST_TIES=[['AUS','NZL'],['TGA','SAM'],['ENG','FIJ'],['PNG','COK']];
-const NATION_REP={AUS:80,NZL:65,ENG:65,TGA:50,SAM:50,FIJ:50,PNG:50,COK:50}, ORIGIN_REP=20;
-function ensureCareer(){ const c=C(); c.market=c.market||[]; if(c.off&&c.off.fa){ c.market.push(...c.off.fa); delete c.off.fa; } if(!c.market.length&&c.phase==='season') for(let i=0;i<10;i++) c.market.push(genFA()); if(!c.statsV){ for(const cl of clubs()){ for(const p of cl.players){ if(!p.st||p.st.gp==null) p.st=blankSt(); } cl.ts=cl.ts||blankTS(); } c.medals=c.medals||[]; c.statsV=1; } c.roles=c.roles||{origin:null,nation:null}; c.origin=c.origin||{games:[]}; c.offers=c.offers||[]; c.repSel=c.repSel||{}; if(c.tests===undefined) c.tests=null;
+// national jobs are a ladder: Cook Islands, then Fiji or PNG, then Samoa, Tonga or England, then New Zealand or Australia.
+// Nations on the same rung play at a similar strength
+const NATION_TIER={COK:1,FIJ:2,PNG:2,SAM:3,TGA:3,ENG:3,NZL:4,AUS:4}, TIER_REP=[0,35,50,65,80], TIER_STR=[0,60,68,75,83];
+const NATION_REP=Object.fromEntries(Object.entries(NATION_TIER).map(([k,t])=>[k,TIER_REP[t]])), ORIGIN_REP=20;
+function ensureCareer(){ const c=C(); c.market=c.market||[]; if(c.off&&c.off.fa){ c.market.push(...c.off.fa); delete c.off.fa; } if(!c.market.length&&c.phase==='season') for(let i=0;i<10;i++) c.market.push(genFA()); if(!c.statsV){ for(const cl of clubs()){ for(const p of cl.players){ if(!p.st||p.st.gp==null) p.st=blankSt(); } cl.ts=cl.ts||blankTS(); } c.medals=c.medals||[]; c.statsV=1; } c.roles=c.roles||{origin:null,nation:null}; if(c.roles.nation&&!c.natBest) c.natBest=NATION_TIER[c.roles.nation]; c.origin=c.origin||{games:[]}; c.offers=c.offers||[]; c.repSel=c.repSel||{}; if(c.tests===undefined) c.tests=null;
   if(!c.persV){ for(const cl of clubs()) for(const p of cl.players){ giveTraits(p); if(p.yrsAt==null) p.yrsAt=1+Math.floor(rnd()*4); } for(const p of c.market) giveTraits(p); if(c.off&&c.off.draft) for(const p of c.off.draft.pool) giveTraits(p);
     c.staff.rec=c.staff.rec||1; c.pending=[]; c.dead=[]; c.persV=1; newsAdd('New: players now have personalities. They can turn you down, rival clubs bid against you, and players in the last year of a deal can be approached for next season.'); saveLeague(); } }
 function allPlayers(){ const out=[]; clubs().forEach((cl,ci)=>{ for(const p of cl.players) out.push({p,ci}); }); return out; }
@@ -3221,9 +3225,11 @@ function repSide(key,useSel){
   let ids=(useSel&&c&&c.repSel&&c.repSel[key]&&c.repSel[key].length===13)?c.repSel[key]:autoPickIds(key);
   const used=new Set(); const recs=ids.map((id,i)=>{ let p=id&&byId[id]; if(p&&(used.has(p.id)||p.inj)) p=null; if(p){ used.add(p.id); return p; } const pos=i<9?ORDER[i][0]:BENCH[i-9]; return padPlayer(key,pos,i); });
   const T=REP_TEAMS[key], starters=recs.slice(0,9), bench=recs.slice(9,13);
-  return {id:key,name:T.name,abbr:T.abbr,c1:T.c1,c2:T.c2,c3:T.c3,pat:T.pat,style:T.style,rating:.6,starters,bench};
+  // pull each nation most of the way to its rung's strength; the players it actually has still count for a little
+  let lvl=0; if(NATION_TIER[key]){ const o=starters.reduce((s,p)=>s+ovr(p),0)/9, tg=TIER_STR[NATION_TIER[key]]; lvl=+(((tg+(o-tg)*.1)-o)/100).toFixed(3); }
+  return {id:key,name:T.name,abbr:T.abbr,c1:T.c1,c2:T.c2,c3:T.c3,pat:T.pat,style:T.style,rating:.6,starters,bench,lvl};
 }
-function sideOvr(sd){ return sd.starters.reduce((s,p)=>s+ovr(p),0)/9; }
+function sideOvr(sd){ return sd.starters.reduce((s,p)=>s+ovr(p),0)/9+(sd.lvl||0)*100; }
 function simRep(kA,kB,userKey){
   const A=repSide(kA,kA===userKey), B=repSide(kB,kB===userKey); let d=sideOvr(A)-sideOvr(B);
   const c=C(); if(userKey===kA) d+=1.2*(c.staff.att+c.staff.def+c.staff.kick-3); if(userKey===kB) d-=1.2*(c.staff.att+c.staff.def+c.staff.kick-3);
@@ -3279,7 +3285,7 @@ function nextWC(y){ let n=y; while(!isWCYear(n)) n++; return n; }
 function curTies(){ const t=C().tests; return t&&t.wc?t.ties:TEST_TIES; }
 function tieLine(ties){ return ties.map(t=>REP_TEAMS[t[0]].name+' v '+REP_TEAMS[t[1]].name).join(', '); }
 function startTests(){ const c=C(); c.phase='tests';
-  if(isWCYear(c.year)){ const S=['AUS','NZL','ENG',...shuffle(['TGA','SAM','FIJ','PNG','COK'])];
+  if(isWCYear(c.year)){ const S=[...shuffle(['AUS','NZL']),...shuffle(['SAM','TGA','ENG']),...shuffle(['FIJ','PNG']),'COK'];
     c.tests={wc:true,round:0,ties:[[S[0],S[7]],[S[3],S[4]],[S[1],S[6]],[S[2],S[5]]],results:[]}; newsAdd('The '+c.year+' World Cup is here. Quarter-finals: '+tieLine(c.tests.ties)+'.'); }
   else { c.tests={results:[]}; newsAdd('International week: '+tieLine(TEST_TIES)+'.'); }
   saveLeague(); }
@@ -3310,9 +3316,10 @@ function repReview(){
   if(c.roles.origin&&c.rep<ORIGIN_REP-8){ newsAdd(REP_TEAMS[c.roles.origin].name+' replaced you as coach.'); c.roles.origin=null; }
   if(c.roles.nation&&c.rep<NATION_REP[c.roles.nation]-10){ newsAdd(REP_TEAMS[c.roles.nation].name+' replaced you as coach.'); c.roles.nation=null; }
   if(!c.roles.origin&&c.rep>=ORIGIN_REP) c.offers.push({k:'origin',v:stateFor(myClub())});
-  // every national team you qualify for (up to three, best first); if you already coach one, only the same level or higher
-  const nations=shuffle(Object.keys(NATION_REP).filter(n=>c.rep>=NATION_REP[n]&&n!==c.roles.nation&&(!c.roles.nation||NATION_REP[n]>=NATION_REP[c.roles.nation]))).sort((a,b)=>NATION_REP[b]-NATION_REP[a]).slice(0,3);
-  for(const n of nations) c.offers.push({k:'nation',v:n});
+  // national jobs go one rung at a time: the next rung up from the nation you coach. Without one you start at the Cook Islands,
+  // or one rung below the best you've coached if a nation let you go
+  const curT=c.roles.nation?NATION_TIER[c.roles.nation]:0, nextT=c.roles.nation?curT+1:Math.max(1,(c.natBest||1)-1);
+  if(nextT<=4&&c.rep>=TIER_REP[nextT]) for(const n of shuffle(Object.keys(NATION_TIER).filter(n=>NATION_TIER[n]===nextT))) c.offers.push({k:'nation',v:n});
   // other clubs want you as head coach: the better the club, the more reputation it takes
   const rk={}; ladder().forEach((r,k)=>rk[r.i]=k+1);
   const able=shuffle([...clubs().keys()].filter(ci=>ci!==c.club&&c.rep+5>=20+(17-(rk[ci]||9))*3.5));
@@ -3331,9 +3338,9 @@ function renderOffers(B){
       actRow(tb,tr,5).appendChild(b); }
     const w=el('<div class="tblwrap"></div>'); w.appendChild(tb); box.appendChild(w); }
   if(!repO.length) return;
-  const box=el('<div class="card2" style="margin-top:10px"><p class="big2">REP JOBS</p><p>Coach a state or national side alongside your club job. You can coach one nation at a time.</p><div class="row" id="ofBtns"></div></div>'); B.appendChild(box);
+  const box=el('<div class="card2" style="margin-top:10px"><p class="big2">REP JOBS</p><p>Coach a state or national side alongside your club job. National jobs go up a ladder: Cook Islands, then Fiji or PNG, then Samoa, Tonga or England, then New Zealand or Australia.</p><div class="row" id="ofBtns"></div></div>'); B.appendChild(box);
   for(const o of repO){ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'; b.textContent='COACH '+REP_TEAMS[o.v].name.toUpperCase()+(o.k==='nation'&&c.roles.nation?' (LEAVE '+REP_TEAMS[c.roles.nation].abbr+')':'');
-    b.onclick=()=>{ if(o.k==='origin') c.roles.origin=o.v; else c.roles.nation=o.v; unlockRep(o.v); c.offers=c.offers.filter(x=>x.k!==o.k); c.honours.push({s:c.season,y:c.year,t:'Appointed '+REP_TEAMS[o.v].name+' coach'}); newsAdd('Appointed '+REP_TEAMS[o.v].name+' coach.'); saveLeague(); renderHub(); };
+    b.onclick=()=>{ if(o.k==='origin') c.roles.origin=o.v; else { c.roles.nation=o.v; c.natBest=Math.max(c.natBest||0,NATION_TIER[o.v]); } unlockRep(o.v); c.offers=c.offers.filter(x=>x.k!==o.k); c.honours.push({s:c.season,y:c.year,t:'Appointed '+REP_TEAMS[o.v].name+' coach'}); newsAdd('Appointed '+REP_TEAMS[o.v].name+' coach.'); saveLeague(); renderHub(); };
     $('ofBtns').appendChild(b); }
   const d=document.createElement('button'); d.type='button'; d.className='pxbtn ghost'; d.textContent='NO REP JOB THIS YEAR'; d.onclick=()=>{ c.offers=c.offers.filter(x=>x.k==='club'); saveLeague(); renderHub(); }; $('ofBtns').appendChild(d);
 }
@@ -3345,9 +3352,9 @@ function switchClub(ci){ const c=C(), old=myClub(), to=clubs()[ci], o=c.offers.f
 let repEdit=null;
 function hubRep(B){
   const c=C(); ensureCareer();
-  const marks=[['ORIGIN',ORIGIN_REP],['PACIFIC',50],['NZ / ENG',65],['AUSTRALIA',80]];
+  const marks=[['ORIGIN',ORIGIN_REP],['COOK IS',TIER_REP[1]],['FIJ/PNG',TIER_REP[2]],['SAM/TGA/ENG',TIER_REP[3]],['NZ/AUS',TIER_REP[4]]];
   B.appendChild(el(`<div class="card2"><p class="lbl">COACHING REPUTATION · ${Math.round(c.rep)}/100</p><div class="repbar"><i style="width:${c.rep}%"></i>${marks.map(([t,v])=>`<span style="left:${v}%">${t}</span>`).join('')}</div>
-    <p>Win games and make the finals to build your reputation; rep teams offer you jobs at the end of each season. Coach a rep team and you can play as them in Quick Match.</p>
+    <p>Win games and make the finals to build your reputation; rep teams offer you jobs at the end of each season. National jobs go up a ladder one step at a time: Cook Islands, then Fiji or PNG, then Samoa, Tonga or England, then New Zealand or Australia. Coach a rep team and you can play as them in Quick Match.</p>
     <p><b>Origin:</b> ${c.roles.origin?esc(REP_TEAMS[c.roles.origin].name):'not coaching'} · <b>International:</b> ${c.roles.nation?esc(REP_TEAMS[c.roles.nation].name):'not coaching'}</p><p><b>World Cup:</b> ${isWCYear(c.year)&&c.phase!=='offseason'?'this year, after the finals':'next in '+nextWC(c.year+(c.phase==='offseason'?1:0))}${(c.wcHist||[]).length?' · Past winners: '+c.wcHist.map(w=>REP_TEAMS[w.champ].abbr+' '+w.y).join(', '):''}</p></div>`));
   if(c.phase==='offseason') renderOffers(B);
   const g=c.origin.games; const og=el('<div class="card2" style="margin-top:10px"><p class="lbl">ORIGIN SERIES '+c.year+' · AFTER ROUNDS '+ORIGIN_ROUNDS.map(r=>r).join(', ')+'</p><ul class="news" id="orList"></ul></div>'); B.appendChild(og);
