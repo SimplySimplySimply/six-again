@@ -311,7 +311,7 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
         <button class="pick" id="pickOpp" type="button">OPPONENT <b id="oppName">Random</b></button>
       </div>
       <div class="grid" id="clubGrid"></div>
-      <p class="lbl" style="margin:10px 0 6px">REP TEAMS · PLAY AS THE ONES YOU'VE COACHED IN CAREER <span id="repNote" style="color:var(--amber)"></span></p>
+      <p class="lbl" style="margin:10px 0 6px">REP TEAMS · PLAY AS THE ONES YOU'VE COACHED IN CAREER, OR THE ALL BLACKS LEGENDS <span id="repNote" style="color:var(--amber)"></span></p>
       <div class="grid" id="repGrid"></div>
       <div class="row">
         <button class="pxbtn ghost sm" id="qBack" type="button">BACK</button>
@@ -966,7 +966,7 @@ function genClub(i){
   const cl={id:i,name:c[0],abbr:c[1],c1:c[2],c2:c[3],c3:c[4],pat:c[5],style:c[6],rating:c[7],state:st,players,lineup:null}; setAway(cl,i);
   giveStars(cl,true); return cl;
 }
-function genLeague(){ const L={v:2,at:Date.now(),clubs:CLUBS.map((c,i)=>genClub(i)),career:null,stars5:true,kits2:true,nats2:true,orig2:true}; ensureLegends(L); return L; }
+function genLeague(){ const L={v:2,at:Date.now(),clubs:CLUBS.map((c,i)=>genClub(i)),career:null,stars5:true,kits2:true,nats2:true,orig2:true}; ensureLegends(L); ensureReal(L); return L; }
 // every club gets one or two five-star players (overall 84-89 for their position)
 function makeStar(p){ const w=OVR_W[p.pos], target=84+Math.floor(rnd()*6); let guard=0; while(ovr(p)<target&&guard++<70){ for(const k in w) p.r[k]=+Math.min(.97,p.r[k]+.01).toFixed(3); } }
 function giveStars(cl,resal){
@@ -979,9 +979,14 @@ function raiseTo(r,pos,target,cap){ const w=OVR_W[pos]; const o=()=>{ let t=0; f
   while(o()<target&&g++<150){ for(const k in w) r[k]=+Math.min(cap,r[k]+.01).toFixed(3); } return r; }
 function trimToPeak(p){ if(!p.peak) return; const w=OVR_W[p.pos]; let g=0; while(ovr(p)>p.peak&&g++<150){ for(const k in w) p.r[k]=+Math.max(.2,p.r[k]-.005).toFixed(3); } }
 function makeLegend(p,target){ raiseTo(p.r,p.pos,target,.97); p.legend=true; p.peak=target; p.potO=target; }
+// legend prospects are named after the greats of league and the All Blacks, past and present (each name once per league)
+const LEGEND_NAMES=`Mal Meninga|CE|AUS|QLD,Darren Lockyer|FE|AUS|QLD,Andrew Johns|HB|AUS|NSW,Johnathan Thurston|HB|AUS|QLD,Billy Slater|FB|AUS|QLD,Cameron Smith|HK|AUS|QLD,Wally Lewis|FE|AUS|QLD,Arthur Beetson|PR|AUS|QLD,Clive Churchill|FB|AUS|NSW,Reg Gasnier|CE|AUS|NSW,Graeme Langlands|FB|AUS|NSW,Brad Fittler|FE|AUS|NSW,Laurie Daley|FE|AUS|NSW,Allan Langer|HB|AUS|QLD,Glenn Lazarus|PR|AUS|NSW,Shane Webcke|PR|AUS|QLD,Gorden Tallis|LK|AUS|QLD,Brad Clyde|LK|AUS|NSW,Greg Inglis|CE|AUS|QLD,Jarryd Hayne|FB|AUS|NSW,Cooper Cronk|HB|AUS|QLD,Paul Gallen|LK|AUS|NSW,Steve Menzies|LK|AUS|NSW,Peter Sterling|HB|AUS|NSW,Ken Irvine|WG|AUS|NSW,Wendell Sailor|WG|AUS|QLD,Nathan Hindmarsh|LK|AUS|NSW,Danny Buderus|HK|AUS|NSW,Steve Price|PR|AUS|QLD,Petero Civoniceva|PR|FIJ|QLD,Stacey Jones|HB|NZL|,Benji Marshall|FE|NZL|,Ruben Wiki|CE|NZL|,Hugh McGahan|LK|NZL|,Mark Graham|LK|NZL|,Manu Vatuvei|WG|NZL|,Simon Mannering|LK|NZL|,Shaun Johnson|HB|NZL|,Joe Rokocoko|WG|NZL|,Doug Howlett|WG|NZL|,Ma'a Nonu|CE|NZL|,Carlos Spencer|FE|NZL|,Andrew Mehrtens|FE|NZL|,Grant Fox|FE|NZL|,Keven Mealamu|HK|NZL|,Tony Woodcock|PR|NZL|,Owen Franks|PR|NZL|,Frank Bunce|CE|NZL|,Julian Savea|WG|NZL|,Brodie Retallick|LK|NZL|,Mils Muliaina|FB|NZL|,Ben Smith|FB|NZL|,Israel Dagg|FB|NZL|,Ardie Savea|LK|NZL|,Beauden Barrett|FB|NZL|,Jordie Barrett|CE|NZL|,Scott Barrett|LK|NZL|,Will Jordan|WG|NZL|,Caleb Clarke|WG|NZL|,Codie Taylor|HK|NZL|,Damian McKenzie|FE|NZL|,Mark Tele'a|WG|NZL|,Cam Roigard|HB|NZL|,Tupou Vaa'i|LK|NZL|,Wallace Sititi|LK|NZL|,Ethan de Groot|PR|NZL|,Tamaiti Williams|PR|NZL|,Sevu Reece|WG|NZL|`.split(',').map(r=>r.split('|'));
+function legendName(goat){ const L=LEAGUE; L.legNames=L.legNames||[]; const ok=LEGEND_NAMES.filter(e=>!L.legNames.includes(e[0])&&(!goat||['FB','HB','FE','CE'].includes(e[1])));
+  const e=ok.length?pick(ok):null; if(e) L.legNames.push(e[0]); return e; }
 function legendProspect(kind){
-  const pos=kind==='goat'?pick(['FB','HB','FE','CE']):pick(['FB','HB','FE','CE','WG','LK','PR','HK']);
+  const e=legendName(kind==='goat'), pos=e?e[1]:kind==='goat'?pick(['FB','HB','FE','CE']):pick(['FB','HB','FE','CE','WG','LK','PR','HK']);
   const p=mkPlayerRec(pos,.5+rnd()*.05,null,pick(['QLD','NSW']),[18,19]);
+  if(e){ p.name=e[0]; p.nat=e[2]; p.origin=e[3]||null; delete p.tr; giveTraits(p); }
   p.prospect=kind; p.pot=.45; p.peak=kind==='goat'?99:90+Math.floor(rnd()*6); if(kind==='goat') p.cap=1;
   const to={...p.r}; if(kind==='goat'){ for(const k in to) to[k]=1; } else raiseTo(to,pos,p.peak,.97);
   p.grow={from:{...p.r},to,n:0}; p.potO=p.peak; p.xp=0; p.con={yrs:3,sal:0}; p.con.sal=askSalary(p); p.st=blankSt(); p.inj=0; return p;
@@ -1020,7 +1025,7 @@ function benchOf(cl,starters){ const ids=new Set(starters.map(p=>p.id)); const r
   const bench=[...F.slice(0,3),...B.slice(0,1)]; for(const p of rest) if(bench.length<4&&!bench.includes(p)) bench.push(p); return bench.slice(0,4); }
 function sideFromClub(cl,kit){ const st=lineupOf(cl), K=kitOf(cl,kit); return {id:cl.id,name:cl.name,abbr:cl.abbr,c1:K.c1,c2:K.c2,c3:K.c3,pat:K.pat,kit:kit||'home',style:cl.style,rating:cl.rating,starters:st,bench:benchOf(cl,st)}; }
 let LEAGUE=null; const SAVE={ref:null,t:0,cloud:false};
-function loadLeague(){ let L=store.get('league',null), fresh=false; if(!L||L.v!==2||!Array.isArray(L.clubs)||L.clubs.length!==CLUBS.length){ L=genLeague(); fresh=true; } LEAGUE=L; const m1=ensureStars(L), m2=ensureLegends(L), m3=ensureKits(L), m4=ensurePotential(L), m5=ensureAway(L), m6=ensureNats(L), m7=ensureOrigins(L), m8=ensureReal(L); if(m1||m2||m3||m4||m5||m6||m7||m8||fresh){ L.at=Date.now(); store.set('league',L); } }
+function loadLeague(){ let L=store.get('league',null), fresh=false; if(!L||L.v!==2||!Array.isArray(L.clubs)||L.clubs.length!==CLUBS.length){ L=genLeague(); fresh=true; } LEAGUE=L; const m1=ensureStars(L), m2=ensureLegends(L), m3=ensureKits(L), m4=ensurePotential(L), m5=ensureAway(L), m6=ensureNats(L), m7=ensureOrigins(L), m8=ensureReal(L), m9=ensureQuick(L); if(m1||m2||m3||m4||m5||m6||m7||m8||m9||fresh){ L.at=Date.now(); store.set('league',L); } }
 function saveLeague(){
   LEAGUE.at=Date.now(); store.set('league',LEAGUE);
   clearTimeout(SAVE.t); SAVE.t=setTimeout(()=>{ if(SAVE.ref) SAVE.ref.set({league:JSON.parse(JSON.stringify(LEAGUE)),at:LEAGUE.at}).then(()=>{ SAVE.cloud=true; syncSaveNote(); }).catch(()=>{}); },700);
@@ -1032,7 +1037,7 @@ async function initCloud(){
     const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]); if(!db||!user) return;
     const uid=await user.id(); if(!uid) return;
     const ref=db.doc('data/users/'+uid+'/league'); const snap=await ref.get(); SAVE.ref=ref; syncSaveNote();
-    if(snap.exists){ const d=snap.data(); if(d&&d.league&&d.league.v===2&&d.league.clubs&&(d.at||0)>(LEAGUE.at||0)){ LEAGUE=JSON.parse(JSON.stringify(d.league)); const m1=ensureStars(LEAGUE), m2=ensureLegends(LEAGUE), m3=ensureKits(LEAGUE), m4=ensurePotential(LEAGUE), m5=ensureAway(LEAGUE), m6=ensureNats(LEAGUE), m7=ensureOrigins(LEAGUE), m8=ensureReal(LEAGUE); if(m1||m2||m3||m4||m5||m6||m7||m8) saveLeague(); else store.set('league',LEAGUE); onLeagueChanged(); }
+    if(snap.exists){ const d=snap.data(); if(d&&d.league&&d.league.v===2&&d.league.clubs&&(d.at||0)>(LEAGUE.at||0)){ LEAGUE=JSON.parse(JSON.stringify(d.league)); const m1=ensureStars(LEAGUE), m2=ensureLegends(LEAGUE), m3=ensureKits(LEAGUE), m4=ensurePotential(LEAGUE), m5=ensureAway(LEAGUE), m6=ensureNats(LEAGUE), m7=ensureOrigins(LEAGUE), m8=ensureReal(LEAGUE), m9=ensureQuick(LEAGUE); if(m1||m2||m3||m4||m5||m6||m7||m8||m9) saveLeague(); else store.set('league',LEAGUE); onLeagueChanged(); }
       else if((d.at||0)<(LEAGUE.at||0)) saveLeague(); }
     else saveLeague();
     const mref=db.doc('data/users/'+uid+'/match'); MSAVE.ref=mref; const ms=await mref.get();
@@ -2546,11 +2551,21 @@ function unlockRep(key){ if(!LEAGUE) return; LEAGUE.repUnlocked=[...new Set([...
 function repUnlocked(){ const u=new Set((LEAGUE&&LEAGUE.repUnlocked)||[]), c=LEAGUE&&LEAGUE.career;
   if(c){ if(c.roles&&c.roles.origin) u.add(c.roles.origin); if(c.roles&&c.roles.nation) u.add(c.roles.nation);
     for(const h of c.honours||[]) for(const k in REP_TEAMS) if(h.t==='Appointed '+REP_TEAMS[k].name+' coach') u.add(k); }
-  return u; }
+  u.add('ABS'); return u; }
 function repRating(key){ const o=sideOvr(repSide(key,false)); return {o,st:clamp(Math.round((o-45)/7),1,5)}; }
 function repRival(key){ if(key==='QLD') return 'NSW'; if(key==='NSW') return 'QLD'; const t=TEST_TIES.find(t=>t.includes(key)); return t?t[0]===key?t[1]:t[0]:'AUS'; }
-function youObj(){ return youRep&&REP_READY?REP_TEAMS[youRep]:clubs()[youI]; }
-function oppObj(){ return oppRep&&REP_READY?REP_TEAMS[oppRep]:oppI>=0?clubs()[oppI]:null; }
+// quick matches use the default squads, not your career's: once a career starts, a copy of the squads as they were is kept for quick play
+// (careers that started before this get fresh default squads). Club names and kits are shared.
+let POOL_Q=false;
+function quickOn(){ return !!(LEAGUE&&LEAGUE.quick); }
+function quickSnap(L){ L.quick={clubs:L.clubs.map(cl=>({players:JSON.parse(JSON.stringify(cl.players)),lineup:cl.lineup?[...cl.lineup]:null})),overseas:JSON.parse(JSON.stringify(L.overseas||[])),natBase:{}}; }
+function ensureQuick(L){ if(L.quick||!L.career) return false;
+  const Q={clubs:CLUBS.map((c,i)=>genClub(i)),career:null}; ensureLegends(Q); ensureReal(Q);
+  L.quick={clubs:Q.clubs.map(cl=>({players:cl.players,lineup:null})),overseas:Q.overseas,natBase:{}}; return true; }
+function qClub(i){ const cl=clubs()[i]; if(!quickOn()) return cl; const Q=LEAGUE.quick.clubs[i], v={...cl,players:Q.players};
+  Object.defineProperty(v,'lineup',{get(){ return Q.lineup; },set(x){ Q.lineup=x; },enumerable:true}); return v; }
+function youObj(){ return youRep&&REP_READY?REP_TEAMS[youRep]:qClub(youI); }
+function oppObj(){ return oppRep&&REP_READY?REP_TEAMS[oppRep]:oppI>=0?qClub(oppI):null; }
 function rateFor(obj,key){ if(key){ const r=repRating(key); return {st:r.st,o:Math.round(r.o)}; } return {st:teamStars(obj),o:Math.round(teamOvr(obj))}; }
 function clubs(){ return LEAGUE.clubs; }
 function renderClubs(){
@@ -2559,7 +2574,7 @@ function renderClubs(){
     b.style.setProperty('--c1',c.c1); b.style.setProperty('--c2',c.c2);
     b.innerHTML='<span class="kit"></span><div><span class="nm"></span><span class="trate"></span><small></small></div>';
     b.querySelector('.nm').textContent=c.name; b.querySelector('small').textContent=STYLES[c.style].short;
-    b.querySelector('.trate').innerHTML='<span class="stars">'+starStr(teamStars(c))+'</span><b class="ovr">'+Math.round(teamOvr(c))+'</b>';
+    const qc=qClub(i); b.querySelector('.trate').innerHTML='<span class="stars">'+starStr(teamStars(qc))+'</span><b class="ovr">'+Math.round(teamOvr(qc))+'</b>';
     if(!youRep&&i===youI) b.className='club you'; if(youRep&&b.classList.contains('you')) b.classList.remove('you'); if(oppRep&&b.classList.contains('opp')) b.classList.remove('opp');
     b.addEventListener('click',()=>{ audio(); SFX.blip(); kitOpp=null; if(picking==='you'){ youI=i; youRep=null; if(oppI===i) oppI=-1; picking='opp'; } else { oppRep=null; oppI=(i===youI&&!youRep)?-1:i; } syncMenu(); });
     g.appendChild(b); });
@@ -2567,7 +2582,7 @@ function renderClubs(){
   for(const key in REP_TEAMS){ const T=REP_TEAMS[key], open=un.has(key), r=rateFor(T,key), b=document.createElement('button'); b.type='button';
     b.className='club'+(youRep===key?' you':'')+(oppRep===key?' opp':'')+(!open&&picking==='you'?' locked':''); b.style.setProperty('--c1',T.c1); b.style.setProperty('--c2',T.c2);
     b.innerHTML='<span class="kit"></span><div><span class="nm"></span><span class="trate"><span class="stars">'+starStr(r.st)+'</span><b class="ovr">'+r.o+'</b></span><small></small></div>';
-    b.querySelector('.nm').textContent=T.name; b.querySelector('small').textContent=open?(key==='QLD'||key==='NSW'?'STATE OF ORIGIN':'INTERNATIONAL'):'LOCKED · COACH THEM IN CAREER';
+    b.querySelector('.nm').textContent=T.name; b.querySelector('small').textContent=key==='ABS'?'ALL-TIME GREATS':open?(key==='QLD'||key==='NSW'?'STATE OF ORIGIN':'INTERNATIONAL'):'LOCKED · COACH THEM IN CAREER';
     b.addEventListener('click',()=>{ audio(); SFX.blip(); kitOpp=null;
       if(picking==='you'){ if(!open){ $('repNote').textContent=T.name.toUpperCase()+' UNLOCKS WHEN YOU COACH THEM IN CAREER. YOU CAN STILL PLAY AGAINST THEM.'; return; } youRep=key; if(oppRep===key) oppRep=null; if(!oppRep&&oppI<0) oppRep=repRival(key); picking='opp'; }
       else { if(youRep===key) return; oppRep=key; oppI=-1; }
@@ -2636,7 +2651,7 @@ $('bkRestore').onclick=async()=>{ bkMsg(''); try{ bkPending=await readCode($('bk
 $('bkNo').onclick=()=>{ bkPending=null; $('bkConfirm').hidden=true; };
 $('bkYes').onclick=()=>{ const d=bkPending; if(!d) return; bkPending=null; $('bkConfirm').hidden=true;
   LEAGUE=d.league; const st=d.settings||{}; if(st.diff){ DIFF=st.diff; store.set('diff',DIFF); } if(st.adapt!=null){ ADAPT=st.adapt; store.set('adapt',ADAPT); } if(st.len){ len=st.len; store.set('len',len); } if(st.you!=null){ youI=st.you; store.set('you',youI); }
-  ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); ensurePotential(LEAGUE); ensureAway(LEAGUE); ensureNats(LEAGUE); ensureOrigins(LEAGUE); ensureReal(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
+  ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); ensurePotential(LEAGUE); ensureAway(LEAGUE); ensureNats(LEAGUE); ensureOrigins(LEAGUE); ensureReal(LEAGUE); ensureQuick(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
   const c=LEAGUE.career; bkMsg('Restored. '+(c?'Your career with '+LEAGUE.clubs[c.club].name+' (season '+c.season+') is ready under CAREER.':'Your clubs and players are back.')); openBackupOut(); };
 async function openBackupOut(){ try{ $('bkOut').value=await makeCode(); }catch(e){} }
 function syncTutBtn(){ const done=store.get('tutDone',false); const b=$('hTut'); b.className='pxbtn '+(done?'ghost':'big'); b.innerHTML=done?'TUTORIAL':'TUTORIAL<small>ABOUT 4 MIN</small>'; }
@@ -2678,11 +2693,11 @@ function startMatch(sA,sB,len,opts){
 }
 // quick match, step 2: kits, match length and your line-up
 let qRes=null, qsView='me', qsSwap=null;
-function curOpp(){ return qRes?(qRes.rep?REP_TEAMS[qRes.rep]:clubs()[qRes.i]):oppObj(); }
+function curOpp(){ return qRes?(qRes.rep?REP_TEAMS[qRes.rep]:qClub(qRes.i)):oppObj(); }
 function qRepIds(key){ const all=store.get('qRepSel',{}), pool=new Set(eligibleFor(key).map(x=>x.p.id)); let ids=all[key];
   if(!ids||ids.length!==13||ids.some(id=>!id||!pool.has(id))){ ids=autoPickIds(key); all[key]=ids; store.set('qRepSel',all); } return ids; }
 function qSides(){ const [ky,ko]=quickKits(curOpp());
-  const me=youRep?repSide(youRep,false,qRepIds(youRep)):sideFromClub(clubs()[youI],ky), them=qRes.rep?repSide(qRes.rep,false):sideFromClub(clubs()[qRes.i],ko);
+  const me=youRep?repSide(youRep,false,qRepIds(youRep)):sideFromClub(qClub(youI),ky), them=qRes.rep?repSide(qRes.rep,false):sideFromClub(qClub(qRes.i),ko);
   return [me,them]; }
 function drawQsVs(){ const v=$('qsVs'); if(!v||!qRes) return; v.innerHTML=''; const [ky,ko]=quickKits(curOpp());
   const side=(obj,k,key)=>{ const d=document.createElement('div'); d.className='side'; d.appendChild(kitCanvas(kitOf(obj,k),2)); const r=rateFor(obj,key);
@@ -2697,7 +2712,7 @@ function renderQs(){
   $('qsHint').textContent=mine?(youRep?'TAP SWAP ON TWO PLAYERS TO CHANGE YOUR SIDE · INT IS THE BENCH':'TAP SWAP ON TWO PLAYERS TO CHANGE WHO STARTS · INT IS THE BENCH (3 FORWARDS, 1 BACK), PICKED FROM THE REST'):'THEIR SIDE FOR THIS MATCH';
   const [me,them]=qSides(), sd=mine?me:them; let rows=[...sd.starters.map((p,k)=>({p,lab:ORDER[k][0],slot:true})),...sd.bench.map(p=>({p,lab:'INT'}))];
   if(mine){ const used=new Set(rows.map(r=>r.p.id));
-    const rest=youRep?eligibleFor(youRep).map(x=>x.p).filter(p=>!used.has(p.id)).sort((a,b)=>ovr(b)-ovr(a)).slice(0,10):clubs()[youI].players.filter(p=>!used.has(p.id)).sort((a,b)=>(a.inj?1:0)-(b.inj?1:0)||ovr(b)-ovr(a));
+    const rest=youRep?eligibleFor(youRep).map(x=>x.p).filter(p=>!used.has(p.id)).sort((a,b)=>ovr(b)-ovr(a)).slice(0,10):qClub(youI).players.filter(p=>!used.has(p.id)).sort((a,b)=>(a.inj?1:0)-(b.inj?1:0)||ovr(b)-ovr(a));
     rows.push(...rest.map(p=>({p,lab:p.inj?'INJ':'RES'}))); }
   rows.forEach(({p,lab,slot},idx)=>{ const tr=document.createElement('tr'); if(qsSwap===p.id) tr.className='me'; if(idx===9||idx===13) tr.style.borderTop='2px solid #000';
     const oop=slot&&p.pos!==lab;
@@ -2712,7 +2727,7 @@ function qsDoSwap(a,b){ qsSwap=null; qsMsg('');
   if(youRep){ const all=store.get('qRepSel',{}), ids=[...qRepIds(youRep)], ia=ids.indexOf(a), ib=ids.indexOf(b);
     if(ia>=0&&ib>=0){ ids[ia]=b; ids[ib]=a; } else if(ia>=0) ids[ia]=b; else if(ib>=0) ids[ib]=a; else { qsMsg('Swap with one of the players in your side.'); renderQs(); return; }
     all[youRep]=ids; store.set('qRepSel',all); renderQs(); return; }
-  const cl=clubs()[youI], ids=lineupOf(cl).map(p=>p.id), pa=cl.players.find(p=>p.id===a), pb=cl.players.find(p=>p.id===b), ia=ids.indexOf(a), ib=ids.indexOf(b);
+  const cl=qClub(youI), ids=lineupOf(cl).map(p=>p.id), pa=cl.players.find(p=>p.id===a), pb=cl.players.find(p=>p.id===b), ia=ids.indexOf(a), ib=ids.indexOf(b);
   if(!pa||!pb){ renderQs(); return; }
   if((ia<0&&pa.inj)||(ib<0&&pb.inj)){ qsMsg('Injured players can\'t be picked to start.'); renderQs(); return; }
   if(ia>=0&&ib>=0){ ids[ia]=b; ids[ib]=a; } else if(ia>=0) ids[ia]=b; else if(ib>=0) ids[ib]=a;
@@ -2723,11 +2738,11 @@ $('qNext').onclick=()=>{ audio(); SFX.blip(); let o=oppI, oR=oppRep;
   if(o<0&&!oR){ if(youRep) oR=repRival(youRep); else do{ o=Math.floor(rnd()*clubs().length); }while(o===youI); }
   qRes={i:o,rep:oR}; qsView='me'; qsSwap=null; qsMsg(''); $('menu').hidden=true; $('qSetup').hidden=false; renderQs(); };
 $('qsBack').onclick=()=>{ qRes=null; qsSwap=null; $('qSetup').hidden=true; syncMenu(); $('menu').hidden=false; };
-$('startBtn').onclick=()=>{ if(!qRes) return; const [me,them]=qSides(); $('qSetup').hidden=true; qRes=null; startMatch(me,them,len,{}); };
+$('startBtn').onclick=()=>{ if(!qRes) return; const [me,them]=qSides(); $('qSetup').hidden=true; qRes=null; POOL_Q=false; startMatch(me,them,len,{}); };
 $('qBack').onclick=()=>{ $('menu').hidden=true; showHome(); };
-function showHome(){ if(typeof syncDiff==='function') syncDiff(); if(typeof syncTutBtn==='function') syncTutBtn(); ['menu','qSetup','clubsModal'].forEach(id=>$(id).hidden=true); qRes=null; if($('careerHub')) $('careerHub').hidden=true; $('home').hidden=false; if(LEAGUE&&LEAGUE.career) pruneMatchSave(); syncResume(); drawHomeKits(); syncSaveNote(); }
+function showHome(){ if(typeof syncDiff==='function') syncDiff(); if(typeof syncTutBtn==='function') syncTutBtn(); ['menu','qSetup','clubsModal'].forEach(id=>$(id).hidden=true); qRes=null; POOL_Q=false; if($('careerHub')) $('careerHub').hidden=true; $('home').hidden=false; if(LEAGUE&&LEAGUE.career) pruneMatchSave(); syncResume(); drawHomeKits(); syncSaveNote(); }
 $('hResume').onclick=()=>{ const S=savedMatch(); if(!S) return syncResume(); if(!resumeMatch(S)){ $('saveNote').textContent='THAT MATCH HAS ALREADY BEEN PLAYED OR SIMMED, SO IT CAN\'T BE RESUMED'; } };
-$('hQuick').onclick=()=>{ audio(); SFX.blip(); $('home').hidden=true; syncMenu(); $('menu').hidden=false; };
+$('hQuick').onclick=()=>{ audio(); SFX.blip(); POOL_Q=true; $('home').hidden=true; syncMenu(); $('menu').hidden=false; };
 $('hClubs').onclick=()=>{ audio(); SFX.blip(); $('home').hidden=true; ceSel=youI; renderCE(); $('clubsModal').hidden=false; };
 $('hCareer').onclick=()=>{ audio(); SFX.blip(); if(typeof openCareer==='function') openCareer(); };
 
@@ -2966,6 +2981,7 @@ function offerCtl(p,o){
 }
 function newCareer(ci){
   const S0=savedMatch(); if(S0&&S0.ctx) clearMatchSave(); LEAGUE.natBase={}; // nations start this career on their rung's strength
+  if(!LEAGUE.quick) quickSnap(LEAGUE);
   const pays=clubs().map(payroll); const mx=Math.max(...pays);
   LEAGUE.career={club:ci,season:1,year:new Date().getFullYear()+1,round:0,phase:'season',fixtures:roundRobin(clubs().length),results:[],credits:6,
     fac:{train:1,med:1,stad:1},staff:{att:1,def:1,kick:1,rec:1},rep:10,history:[],news:[],roles:{origin:null,nation:null},origin:{games:[]},tests:null,offers:[],repSel:{},cap:Math.round(mx*1.05/50)*50,pending:[],dead:[],persV:1,finals:null,off:null,honours:[],last:null};
@@ -3188,7 +3204,7 @@ function newSeason(){
 let hubTab='next', hubNote=null;
 function hubMsg(t,bad){ hubNote={t,bad}; renderHub(); }
 function kitCanvas(cl,sc){ const k=document.createElement('canvas'); k.width=11*sc; k.height=17*sc; k.style.imageRendering='pixelated'; k.style.width=(11*sc*1.4)+'px'; k.style.height=(17*sc*1.4)+'px'; const c2=k.getContext('2d'); drawKit(c2,cl,5*sc,16*sc,sc); return k; }
-function openCareer(){ $('home').hidden=true; if(!C()) renderNewCareer(); else { hubTab='next'; renderHub(); } $('careerHub').hidden=false; }
+function openCareer(){ POOL_Q=false; $('home').hidden=true; if(!C()) renderNewCareer(); else { hubTab='next'; renderHub(); } $('careerHub').hidden=false; }
 function renderNewCareer(){
   $('chNew').hidden=true; $('chClub').textContent='NEW CAREER'; $('chSub').textContent='PICK THE CLUB YOU WANT TO COACH'; $('chCredits').textContent='–'; $('chTabs').innerHTML='';
   const k=$('chKit').getContext('2d'); k.clearRect(0,0,33,51);
@@ -3318,6 +3334,7 @@ function ctxOpts(ctx){
   if(ctx.type==='club'){ const pair=ctx.isFinal?userTie():userFixture(); if(!pair||pair[0]!==ctx.h||pair[1]!==ctx.a) return null; return careerOpts(ctx); }
   if(ctx.type==='origin'){ if(!originPending()||c.roles.origin!==ctx.mine) return null; return repOpts(ctx); }
   if(ctx.type==='test'){ if(c.phase!=='tests'||c.roles.nation!==ctx.mine) return null; return repOpts(ctx); }
+  if(ctx.type==='abs'){ if(c.phase!=='offseason'||!c.off||c.off.step!=='review'||c.off.abs) return null; return repOpts(ctx); }
   return null;
 }
 function pruneMatchSave(){ const S=savedMatch(); if(S&&S.ctx&&ctxOpts(S.ctx)===null) clearMatchSave(); }
@@ -3498,7 +3515,7 @@ function hubOff(B){
   const c=C(), o=c.off, mine=myClub();
   if(o.step==='review'){ const last=c.history[c.history.length-1];
     B.appendChild(el(`<div class="card2"><p class="big2">SEASON ${c.season} REVIEW</p><p>${esc(mine.name)} finished ${ordinal(last.pos)} (${last.w}-${last.d}-${last.l}). ${esc(last.fin)}.</p><p>${c.finals&&c.finals.champ!=null?esc(clubs()[c.finals.champ].name)+' won the premiership.':''}</p>${c.medal&&c.medal.s===c.season?'<p>Six Again Medal: <b>'+esc(c.medal.name)+'</b> ('+esc(c.medal.club)+'), '+c.medal.votes+' votes.</p>':''}<p style="color:var(--muted)">Next: players age a year, young players improve, veterans slow down and some retire. Then contracts, the rookie draft and free agency.</p></div>`));
-    renderOffers(B);
+    hubExhib(B); renderOffers(B);
   } else if(o.step==='contracts'){ const exp=mine.players.filter(p=>p.con.yrs<=0);
     B.appendChild(el(`<div class="card2"><p class="big2">EXPIRING CONTRACTS</p><p>${exp.length?'Re-sign the players you want to keep. They can say no, so you may need to offer more. Anyone you don\'t re-sign leaves for free agency.':'Nobody is out of contract this year.'}</p></div>`));
     const tb=document.createElement('table'); tb.className='lad';
@@ -3537,7 +3554,7 @@ $('chNew').onclick=()=>{
   const B=$('chBody'); $('chTabs').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
   B.innerHTML=''; B.appendChild(el(`<div class="card2"><p class="big2">START A NEW CAREER?</p><p>Your current career with ${esc(myClub().name)} (season ${c.season}, ${c.year}) will be deleted. Your club names, kits and player names stay.</p><p style="color:var(--muted)">Keep these squads: every club starts with the players it has now, including anyone signed or drafted. Fresh squads: every club gets a brand new squad, with new five-star players and legends.</p><div class="row" id="ncBtns"></div></div>`));
   const go=fresh=>{ const S0=savedMatch(); if(S0&&S0.ctx) clearMatchSave();
-    if(fresh){ clubs().forEach((cl,i)=>{ const g=genClub(i); cl.players=g.players; cl.lineup=null; }); LEAGUE.legends4=false; ensureLegends(LEAGUE); LEAGUE.career=null; LEAGUE.real27=false; ensureReal(LEAGUE); }
+    if(fresh){ clubs().forEach((cl,i)=>{ const g=genClub(i); cl.players=g.players; cl.lineup=null; }); LEAGUE.legends4=false; ensureLegends(LEAGUE); LEAGUE.career=null; LEAGUE.real27=false; ensureReal(LEAGUE); LEAGUE.quick=null; }
     for(const cl of clubs()){ cl.lineup=null; for(const p of cl.players){ p.inj=0; delete p.car; } }
     LEAGUE.career=null; saveLeague(); renderNewCareer(); };
   const mk=(t,cls,f)=>{ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'+cls; b.textContent=t; b.onclick=f; $('ncBtns').appendChild(b); };
@@ -3557,6 +3574,7 @@ const REP_TEAMS={
   PNG:{name:'Papua New Guinea',abbr:'PNG',c1:'#c8102e',c2:'#f6c400',c3:'#111111',pat:'v',style:'middle'},
   COK:{name:'Cook Islands',abbr:'COK',c1:'#1a7a3a',c2:'#f2f2f2',c3:'#f2f2f2',pat:'hoops',style:'kick'}
 };
+REP_TEAMS.ABS={name:'All Blacks Legends',abbr:'ABS',c1:'#0a0a0a',c2:'#d9d9d9',c3:'#0a0a0a',pat:'band',style:'wide'};
 REP_READY=true; setTimeout(()=>{ if(LEAGUE) syncMenu(); },0);
 const ORIGIN_ROUNDS=[5,9,13], TEST_TIES=[['AUS','NZL'],['TGA','SAM'],['ENG','FIJ'],['PNG','COK']];
 // national jobs are a ladder: Cook Islands, then Fiji or PNG, then Samoa, Tonga or England, then New Zealand or Australia.
@@ -3567,7 +3585,28 @@ function ensureCareer(){ const c=C(); c.market=c.market||[]; if(c.off&&c.off.fa)
   if(!c.persV){ for(const cl of clubs()) for(const p of cl.players){ giveTraits(p); if(p.yrsAt==null) p.yrsAt=1+Math.floor(rnd()*4); } for(const p of c.market) giveTraits(p); if(c.off&&c.off.draft) for(const p of c.off.draft.pool) giveTraits(p);
     c.staff.rec=c.staff.rec||1; c.pending=[]; c.dead=[]; c.persV=1; newsAdd('New: players now have personalities. They can turn you down, rival clubs bid against you, and players in the last year of a deal can be approached for next season.'); saveLeague(); } }
 function allPlayers(){ const out=[]; clubs().forEach((cl,ci)=>{ for(const p of cl.players) out.push({p,ci}); }); return out; }
-function repPool(){ const out=allPlayers(); for(const p of (LEAGUE.overseas||[])) out.push({p,ci:-1}); return out; }
+function repPool(){ if(POOL_Q&&quickOn()){ const Q=LEAGUE.quick, out=[]; Q.clubs.forEach((cl,ci)=>{ for(const p of cl.players) out.push({p,ci}); }); for(const p of Q.overseas||[]) out.push({p,ci:-1}); for(const p of ensureAB(LEAGUE)) out.push({p,ci:-1}); return out; }
+  const out=allPlayers(); for(const p of (LEAGUE.overseas||[])) out.push({p,ci:-1}); for(const p of ensureAB(LEAGUE)) out.push({p,ci:-1}); return out; }
+// the All Blacks all-time greats: an invitation side for quick matches and an off-season exhibition in career
+const AB_SQUAD=`Christian Cullen|ABS|FB|ABS||27|86
+Jonah Lomu|ABS|WG|ABS||24|90
+Tana Umaga|ABS|CE|ABS||28|85
+John Kirwan|ABS|WG|ABS||26|84
+Dan Carter|ABS|FE|ABS||28|89
+Aaron Smith|ABS|HB|ABS||28|86
+Brad Thorn|ABS|PR|ABS||30|86
+Sean Fitzpatrick|ABS|HK|ABS||29|85
+Richie McCaw|ABS|LK|ABS||29|90
+Colin Meads|ABS|PR|ABS||30|84
+Michael Jones|ABS|LK|ABS||26|85
+Zinzan Brooke|ABS|LK|ABS||28|83
+Sonny Bill Williams|ABS|CE|ABS||28|86
+Kieran Read|ABS|LK|ABS||29|84
+Wayne Shelford|ABS|LK|ABS||29|83
+Jeff Wilson|ABS|WG|ABS||26|82
+Justin Marshall|ABS|HB|ABS||28|82
+Conrad Smith|ABS|CE|ABS||29|82`;
+function ensureAB(L){ if(!L.allBlacks){ L.allBlacks=AB_SQUAD.split('\n').map(r=>{ const p=realRec(r.trim()).p; p.id='ab_'+p.id.slice(2); p.osClub='ABS'; p.potO=ovr(p); return p; }); } return L.allBlacks; }
 function abbrAt(x){ return x.ci<0?(x.p.osClub||'O/S'):clubs()[x.ci].abbr; }
 function eligibleFor(key){ const st=key==='QLD'||key==='NSW'; return repPool().filter(({p})=>!p.inj&&(st?p.origin===key:p.nat===key)); }
 function padPlayer(key,pos,i){ const p=mkPlayerRec(pos,.5,null,null,[22,30]); p.id='pad_'+key+'_'+pos+'_'+i; p.nat=key; p.pad=true; return p; }
@@ -3586,8 +3625,8 @@ function repSide(key,useSel,force){
   // each nation starts at its rung's strength, then rises and falls point for point with its players (up to 10 either way):
   // young stars coming through lift it, retirements and injuries drag it down
   let lvl=0; if(NATION_TIER[key]){ const o=starters.reduce((s,p)=>s+ovr(p),0)/9, tg=TIER_STR[NATION_TIER[key]], L=LEAGUE;
-    if(L){ L.natBase=L.natBase||{}; if(L.natBase[key]==null) L.natBase[key]=+o.toFixed(1); }
-    const base=L&&L.natBase?L.natBase[key]:o; lvl=+(((tg+clamp(o-base,-10,10))-o)/100).toFixed(3); }
+    const NB=!L?null:POOL_Q&&quickOn()?(L.quick.natBase=L.quick.natBase||{}):(L.natBase=L.natBase||{}); if(NB&&NB[key]==null) NB[key]=+o.toFixed(1);
+    const base=NB?NB[key]:o; lvl=+(((tg+clamp(o-base,-10,10))-o)/100).toFixed(3); }
   return {id:key,name:T.name,abbr:T.abbr,c1:T.c1,c2:T.c2,c3:T.c3,pat:T.pat,style:T.style,rating:.6,starters,bench,lvl};
 }
 function sideOvr(sd){ return sd.starters.reduce((s,p)=>s+ovr(p),0)/9+(sd.lvl||0)*100; }
@@ -3624,12 +3663,28 @@ function hubOrigin(B){
     const pl=document.createElement('button'); pl.type='button'; pl.className='pxbtn big'; pl.textContent='PLAY ORIGIN'; pl.onclick=()=>playRep(mine,opp,{type:'origin',mine,opp}); resumeButton(pl,x=>x.type==='origin'&&x.mine===mine); btns.appendChild(pl); }
   const sm=document.createElement('button'); sm.type='button'; sm.className='pxbtn'+(mine?' ghost':''); sm.textContent=mine?'SIM ORIGIN':'SIM ORIGIN GAME'; sm.onclick=()=>{ const [q,n]=simRep('QLD','NSW',mine); done(q,n); }; btns.appendChild(sm);
 }
+function exhibResult(us,th){ const c=C(), won=us>th; c.off.abs={us,th};
+  if(won){ c.credits+=3; c.rep=clamp(c.rep+3,0,100); c.honours.push({s:c.season,y:c.year,t:'Beat the All Blacks Legends'}); }
+  newsAdd('Exhibition: '+myClub().name+' '+us+' – '+th+' All Blacks Legends.'+(won?' A famous win! +3 credits.':''));
+  saveLeague(); }
+function hubExhib(B){ const c=C(), o=c.off; if(!o||o.step!=='review') return;
+  if(o.abs){ B.appendChild(el(`<div class="msg">Exhibition: ${esc(myClub().name)} ${o.abs.us} – ${o.abs.th} All Blacks Legends.</div>`)); return; }
+  const card=el(`<div class="card2" style="margin-top:10px"><p class="lbl">OFF-SEASON EXHIBITION · OPTIONAL</p><p class="big2">${esc(myClub().name.toUpperCase())} V ALL BLACKS LEGENDS</p><p>Lomu, Carter, McCaw, Cullen and the rest of the all-time greats have come over to play league. Beat them for 3 coaching credits and a big lift in reputation. Losing costs nothing.</p><div class="row" id="exBtns"></div></div>`);
+  B.appendChild(card); const bx=card.querySelector('#exBtns');
+  const mk=(t,cls,f)=>{ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'+cls; b.textContent=t; b.onclick=f; bx.appendChild(b); return b; };
+  const pl=mk('PLAY THEM',' big',()=>{ const me=sideFromClub(myClub(),'home'); me.boost=boostOf(c.club); const ab=repSide('ABS',false); $('careerHub').hidden=true; startMatch(me,ab,len,repOpts({type:'abs'})); });
+  resumeButton(pl,x=>x.type==='abs');
+  mk('SIM IT',' ghost',()=>{ const me=sideFromClub(myClub(),'home'), d=sideOvr(me)-sideOvr(repSide('ABS',false))+1.2*(c.staff.att+c.staff.def+c.staff.kick-3);
+    const pts=t=>{ let s=t*4; for(let i=0;i<t;i++) if(rnd()<.68) s+=2; if(rnd()<.25) s+=2; return s; };
+    let a=pts(poisson(clamp(2.6+d*.09,.5,6.5))), b=pts(poisson(clamp(2.6-d*.09,.5,6.5))); if(a===b){ if(rnd()<.5+d*.02) a++; else b++; } exhibResult(a,b); renderHub(); });
+}
 function playRep(myKey,oppKey,ctx){
   const me=repSide(myKey,true), them=repSide(oppKey,false); me.boost=boostOf(C().club);
   $('careerHub').hidden=true;
   startMatch(me,them,len,repOpts(ctx));
 }
 function repCb(ctx){
+  if(ctx.type==='abs') return (us,th)=>exhibResult(us,th);
   if(ctx.type==='origin') return (us,them)=>{ const gi=C().origin.games.length+1, q=ctx.mine==='QLD'?us:them, n=ctx.mine==='QLD'?them:us; recordOrigin(q,n,ctx.mine); hubNote={t:'Origin game '+gi+': Queensland '+q+' – '+n+' New South Wales.'}; };
   return (us,th)=>finishTests([us,th]);
 }
