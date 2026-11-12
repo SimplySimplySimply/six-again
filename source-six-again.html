@@ -1036,6 +1036,7 @@ function beginPTB(x,y,tackled,o={}){
   if(tHK>1.6){ const alt=A.filter(p=>p!==tackled&&p!==dh&&!p.off).sort((p,q)=>hyp(p.x-x,p.y-y)-hyp(q.x-x,q.y-y))[0]; if(alt&&hyp(alt.x-x,alt.y-y)/maxSp(alt)<tHK) dh=alt; }
   const b=G.ball; b.st='ptb'; b.h=tackled; b.x=x; b.y=y; b.z=.1; b.pass=null; b.kick=null; b.fg=null;
   for(const p of G.all){ p.down=0; p.bite=0; p.offside=false; p.drop=0; p.mHold=0; }
+  G.lastRun=false;
   G.ptb={x,y,tackled,dh,t:0,dur:1,kind:o.kind||'regular'};
   tackled.tx=x; tackled.ty=y; dh.tx=x; dh.ty=clampY(y-d*1.1); dh.lane=x; dh.depth=1.1;
   const mode=(a===0&&G.shapeCall)||(a===1&&G.tackles>=3&&rnd()<.35)?'shape':G.tackles<3?'early':'late';
@@ -1662,7 +1663,7 @@ function defAI(p,dt,f,a,d){
     const t=clamp(dd/(mx+.1),0,.6); steer(p,f.x+f.vx*t,f.y+f.vy*t,mx,dt,6); return; }
   if(p.drop&&!G.lbShown){ steer(p,p.dropX,capDef(f.y+d*p.drop,d),mx*.9,dt,4.5); return; }
   if(isFB){ const wide=clamp((Math.abs(f.x-34)-8)/14,0,1), toTry=Math.abs(ownTry(p.team)-f.y);
-    let dep=G.tackles>=G.maxT-1?Math.max(28,fbDepth(p.team)):fbDepth(p.team); if(wide>0&&!(G.tackles>=G.maxT-1)) dep=lerp(dep,Math.min(dep,Math.max(6,toTry*.45)),wide);
+    const kickWatch=G.tackles>=G.maxT-1&&!G.lastRun; let dep=kickWatch?Math.max(28,fbDepth(p.team)):fbDepth(p.team); if(wide>0&&!kickWatch) dep=lerp(dep,Math.min(dep,Math.max(6,toTry*.45)),wide);
     steer(p,34+(f.x-34)*lerp(.6,.92,wide),capDef(f.y+d*dep,d),mx*(.9+wide*.1),dt,4.5+wide*1.5); return; }
   if(G.slider===p){ // inside man sliding across to help the edge
     const t=clamp(dd/(mx+.1),0,.5); steer(p,f.x+f.vx*t-Math.sign(f.x-34)*1.2,capDef(f.y+f.vy*t+d*1.2,d),mx,dt,5.5); return; }
@@ -1856,6 +1857,10 @@ function stepLive(dt){
     G.slider=null; const side=Math.sign(f.x-34);
     if(Math.abs(f.x-34)>11&&!G.lbShown){ const inside=ln.map(x=>x[0]).filter(p=>!G.chasers.includes(p)&&p.pos!=='WG'&&(p.x-f.x)*side<0&&Math.abs(p.x-f.x)<16); if(inside.length) G.slider=inside[0]; } }
   else G.slider=null;
+  // last tackle: the back three drop for the kick, but once it's clear they're running it they come back up into the line.
+  // If anyone but the kicker has it, they read it quickly; if the kicker has it, only once he's made ground or held it a while
+  if(G.tackles>=G.maxT-1&&!G.lastRun&&b.st==='held'&&f&&f!==G.ptb.dh){ const gain=(f.y-G.ptb.y)*d, kk=f===bestKicker(a);
+    if((!kk&&G.playT>.6)||(kk&&(G.playT>2.2||gain>6))||gain>8){ G.lastRun=true; for(const p of G.P[1-a]) p.drop=0; } }
   G.supporters=f?G.P[a].filter(p=>p!==f&&p.down<=0&&!(b.st==='pass'&&b.pass.to===p)).sort((p,q)=>hyp(p.x-f.x,p.y-f.y)-hyp(q.x-f.x,q.y-f.y)).slice(0,2):[];
   if(G.queued&&a===0&&b.st==='held'&&b.h===G.ptb.dh&&G.playT>=.2){ const cl=G.queued; G.queued=null; userPass(cl); tutDone('early'); }
   const air=b.st==='air'||b.st==='fg';
