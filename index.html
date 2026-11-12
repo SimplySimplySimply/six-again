@@ -2807,7 +2807,7 @@ function completeFinalsWeek(userRes){
 function startOffseason(){
   const c=C(), lad=ladder(), pos=lad.findIndex(r=>r.i===c.club)+1, row=lad.find(r=>r.i===c.club);
   let fin='Missed finals'; const F=c.finals; if(F){ if(F.champ===c.club) fin='Premiers'; else if(F.seeds.includes(c.club)){ const w=Math.max(0,...F.games.filter(g=>g.h===c.club||g.a===c.club).map(g=>g.w)); fin='Out in the '+FIN_NAMES[Math.min(3,w)].toLowerCase(); } }
-  c.history.push({s:c.season,y:c.year,pos,w:row.w,d:row.d,l:row.l,fin});
+  c.history.push({s:c.season,y:c.year,pos,w:row.w,d:row.d,l:row.l,fin,c:myClub().name});
   // season bonuses on top of the game-by-game changes
   const bonus=(pos<=8?4:0)+(pos<=4?2:0)+(pos===1?3:0)+(F&&F.champ===c.club?10:0)-(pos>=14?3:0);
   c.rep=clamp(c.rep+bonus,0,100); if(bonus) newsAdd('Season bonus: reputation '+(bonus>0?'+':'')+bonus+(pos===1?' (minor premiers)':pos<=8?' (top 8)':' (bottom four)')+'.');
@@ -2855,7 +2855,7 @@ function aiFill(cl){ const M=mkt(); while(cl.players.length<SQUAD_MIN){ const ne
     cand.con={yrs:1+Math.floor(rnd()*4),sal:askSalary(cand)}; cl.players.push(cand); } }
 function offNext(){
   const c=C(), o=c.off;
-  if(o.step==='review'){ aiApproaches(false); resolvePending(); const retired=ageAndProgress(); c.dead=(c.dead||[]).map(d=>({...d,yrs:d.yrs-1})).filter(d=>d.yrs>0); executeAgreed(); mkt().push(...aiContracts()); o.step='contracts'; newsAdd('New off-season. '+retired.length+' players retired across the league.'); }
+  if(o.step==='review'){ c.offers=(c.offers||[]).filter(x=>x.k!=='club'); aiApproaches(false); resolvePending(); const retired=ageAndProgress(); c.dead=(c.dead||[]).map(d=>({...d,yrs:d.yrs-1})).filter(d=>d.yrs>0); executeAgreed(); mkt().push(...aiContracts()); o.step='contracts'; newsAdd('New off-season. '+retired.length+' players retired across the league.'); }
   else if(o.step==='contracts'){ const mine=myClub(); for(const p of [...mine.players]) if(p.con.yrs<=0){ mine.players.splice(mine.players.indexOf(p),1); p.con={yrs:0,sal:askSalary(p)}; mkt().push(p); newsAdd(p.name+' left the club and is on the open market.'); }
     const lad=ladder().map(r=>r.i).reverse(); if(c.finals&&c.finals.champ!=null){ const ch=c.finals.champ; lad.splice(lad.indexOf(ch),1); lad.push(ch); }
     o.draft={pool:[...Array(clubs().length*2+6)].map(genRookie).sort((a,b)=>playerValue(b)-playerValue(a)),order:[...lad,...lad],pick:0};
@@ -2877,7 +2877,8 @@ function draftPick(id){ const c=C(), D=c.off.draft; if(D.order[D.pick]!==c.club)
   const p=D.pool.find(q=>q.id===id); if(!p) return; D.pool.splice(D.pool.indexOf(p),1); mine.players.push(p); (D.made=D.made||[]).push({n:D.pick+1,ci:c.club,name:p.name,b:badge(p)}); newsAdd('Drafted '+p.name+' ('+POSNAME[p.pos]+', '+p.age+').'); D.pick++; runDraft(); saveLeague(); renderHub(); }
 function draftPass(){ const c=C(), D=c.off.draft; if(D.order[D.pick]!==c.club) return; D.pick++; runDraft(); saveLeague(); renderHub(); }
 function newSeason(){
-  const c=C(); c.lastLadder=ladder().map(r=>r.i); c.season++; c.year++; c.round=0; c.cap=Math.round(c.cap*1.03/50)*50; c.phase='season'; c.results=[]; c.finals=null; c.off=null; c.fixtures=roundRobin(clubs().length); c.last=null;
+  const c=C(); c.lastLadder=ladder().map(r=>r.i); c.season++; c.year++; c.round=0;
+  if(isWCYear(c.year)) setTimeout(()=>{ newsAdd('It\'s a World Cup year. The top eight nations meet after the finals.'); saveLeague(); },0); c.cap=Math.round(c.cap*1.03/50)*50; c.phase='season'; c.results=[]; c.finals=null; c.off=null; c.fixtures=roundRobin(clubs().length); c.last=null;
   for(const cl of clubs()){ for(const p of cl.players){ p.st=blankSt(); p.inj=0; } cl.lineup=null; cl.ts=blankTS(); }
   c.origin={games:[]}; c.tests=null; c.offers=[]; c.pending=[];
   c.market=[...mkt()].sort((a,b)=>ovr(b)-ovr(a)).slice(0,24); for(let i=0;i<6;i++) c.market.push(genFA());
@@ -2899,12 +2900,12 @@ function renderNewCareer(){
       bt.onclick=()=>{ sel=i; draw(); }; g.appendChild(bt); }); };
   draw(); $('ncGo').onclick=()=>{ newCareer(sel); hubTab='next'; renderHub(); };
 }
-function tabsFor(){ const c=C(); const t=[['next',c.phase==='offseason'?'OFF-SEASON':c.phase==='tests'?'INTERNATIONALS':'NEXT MATCH'],['ladder','LADDER'],['squad','SQUAD'],['club','CLUB'],['contracts','CONTRACTS'],['market','MARKET'],['rep','REP FOOTY'],['stats','STATS'],['news','NEWS']]; return t; }
+function tabsFor(){ const c=C(); const t=[['next',c.phase==='offseason'?'OFF-SEASON':c.phase==='tests'?(c.tests&&c.tests.wc?'WORLD CUP':'INTERNATIONALS'):'NEXT MATCH'],['ladder','LADDER'],['squad','SQUAD'],['club','CLUB'],['contracts','CONTRACTS'],['market','MARKET'],['rep','REP FOOTY'],['stats','STATS'],['news','NEWS']]; return t; }
 function renderHub(){
   const c=C(); if(!c){ renderNewCareer(); return; } $('chNew').hidden=false; ensureCareer(); pruneMatchSave();
   const cl=myClub(); $('chClub').textContent=cl.name.toUpperCase();
   const lad=ladder(), pos=lad.findIndex(r=>r.i===c.club)+1, row=lad.find(r=>r.i===c.club);
-  const stage=c.phase==='season'?'ROUND '+(c.round+1)+' OF '+c.fixtures.length:c.phase==='finals'?FIN_NAMES[Math.min(3,c.finals.week)]:c.phase==='tests'?'INTERNATIONALS':'OFF-SEASON';
+  const stage=c.phase==='season'?'ROUND '+(c.round+1)+' OF '+c.fixtures.length:c.phase==='finals'?FIN_NAMES[Math.min(3,c.finals.week)]:c.phase==='tests'?(c.tests&&c.tests.wc?'WORLD CUP · '+WC_ROUNDS[c.tests.round]:'INTERNATIONALS'):'OFF-SEASON';
   $('chSub').textContent=`SEASON ${c.season} · ${c.year} · ${stage} · ${row.w}-${row.d}-${row.l} · ${ordinal(pos)}`;
   $('chCredits').textContent=c.credits;
   const k=$('chKit'), k2=k.getContext('2d'); k2.clearRect(0,0,33,51); drawKit(k2,cl,15,48,3);
@@ -2999,7 +3000,7 @@ function signCtl(label,def,cb,disabled,plus){
   sel.disabled=!!disabled; w.appendChild(sel); w.appendChild(b); return w;
 }
 // training week counter: rounds, then finals weeks, then the off-season. A player can train once every 2 weeks.
-function trainWeek(){ const c=C(); return c.season*40+(c.phase==='season'?c.round:c.phase==='finals'?20+(c.finals?c.finals.week:0):c.phase==='tests'?25:30); }
+function trainWeek(){ const c=C(); return c.season*40+(c.phase==='season'?c.round:c.phase==='finals'?20+(c.finals?c.finals.week:0):c.phase==='tests'?25+((c.tests&&c.tests.round)||0):30); }
 function trainWait(p){ return p.trainedW==null?0:Math.max(0,2-(trainWeek()-p.trainedW)); }
 function trainCost(p){ return Math.max(3,3+Math.floor((ovr(p)-60)/7)); }
 let swapSel=null;
@@ -3051,7 +3052,7 @@ function hubClubTab(B){
   B.appendChild(el('<p class="lbl">FACILITIES AND STAFF</p>')); B.appendChild(g);
   const h=el('<div class="card2" style="margin-top:10px"><p class="lbl">COACHING RECORD · REPUTATION '+Math.round(c.rep)+'/100</p><ul class="news" id="histL"></ul></div>'); B.appendChild(h);
   if(!c.history.length) $('histL').appendChild(el('<li>First season in charge.</li>'));
-  for(const r of [...c.history].reverse()){ const li=document.createElement('li'); li.textContent=`Season ${r.s} (${r.y}): ${ordinal(r.pos)}, ${r.w}-${r.d}-${r.l}. ${r.fin}.`; $('histL').appendChild(li); }
+  for(const r of [...c.history].reverse()){ const li=document.createElement('li'); li.textContent=`Season ${r.s} (${r.y})${r.c?' · '+r.c:''}: ${ordinal(r.pos)}, ${r.w}-${r.d}-${r.l}. ${r.fin}.`; $('histL').appendChild(li); }
   for(const hn of c.honours){ const li=document.createElement('li'); li.textContent='★ '+hn.t+' '+hn.y; $('histL').appendChild(li); }
 }
 function hubContracts(B){
@@ -3289,22 +3290,37 @@ function repOpts(ctx){
     onEnd:()=>{ const us=G.score[0], th=G.score[1]; G.phase='menu'; $('hud').hidden=true; G.t=[null,null]; G.all=[]; G.P=[[],[]]; cb(us,th); hubTab='next'; renderHub(); $('careerHub').hidden=false; },
     onQuit:()=>{ G.phase='menu'; $('hud').hidden=true; G.t=[null,null]; G.all=[]; G.P=[[],[]]; hubMsg('Match saved. Tap RESUME to carry on where you left off.'); $('careerHub').hidden=false; }};
 }
-function startTests(){ const c=C(); c.phase='tests'; c.tests={results:[]}; newsAdd('International week: '+TEST_TIES.map(t=>REP_TEAMS[t[0]].name+' v '+REP_TEAMS[t[1]].name).join(', ')+'.'); saveLeague(); }
+// a World Cup every four years (2026, 2030, ...) replaces the international week: eight nations, quarter-finals, semis and a final
+const WC_ROUNDS=['QUARTER-FINALS','SEMI-FINALS','FINAL'];
+function isWCYear(y){ return y%4===2; }
+function nextWC(y){ let n=y; while(!isWCYear(n)) n++; return n; }
+function curTies(){ const t=C().tests; return t&&t.wc?t.ties:TEST_TIES; }
+function tieLine(ties){ return ties.map(t=>REP_TEAMS[t[0]].name+' v '+REP_TEAMS[t[1]].name).join(', '); }
+function startTests(){ const c=C(); c.phase='tests';
+  if(isWCYear(c.year)){ const S=['AUS','NZL','ENG',...shuffle(['TGA','SAM','FIJ','PNG','COK'])];
+    c.tests={wc:true,round:0,ties:[[S[0],S[7]],[S[3],S[4]],[S[1],S[6]],[S[2],S[5]]],results:[]}; newsAdd('The '+c.year+' World Cup is here. Quarter-finals: '+tieLine(c.tests.ties)+'.'); }
+  else { c.tests={results:[]}; newsAdd('International week: '+tieLine(TEST_TIES)+'.'); }
+  saveLeague(); }
 function finishTests(userRes){
-  const c=C(), mine=c.roles.nation;
-  for(const [a,b] of TEST_TIES){ let sa,sb; if(userRes&&(a===mine||b===mine)){ [sa,sb]=a===mine?[userRes[0],userRes[1]]:[userRes[1],userRes[0]]; } else [sa,sb]=simRep(a,b,mine);
-    c.tests.results.push({a,b,sa,sb}); newsAdd(REP_TEAMS[a].name+' '+sa+' – '+sb+' '+REP_TEAMS[b].name+'.');
-    if(a===mine||b===mine){ const won=(a===mine&&sa>sb)||(b===mine&&sb>sa); if(won){ c.rep=clamp(c.rep+6,0,100); c.credits+=3; c.honours.push({s:c.season,y:c.year,t:'Test win with '+REP_TEAMS[mine].name}); } else c.rep=clamp(c.rep-2,0,100); } }
+  const c=C(), mine=c.roles.nation, T=c.tests, winners=[], tag=T.wc?'World Cup '+WC_ROUNDS[T.round].toLowerCase().replace(/s$/,'')+': ':'';
+  for(const [a,b] of curTies()){ let sa,sb; if(userRes&&(a===mine||b===mine)){ [sa,sb]=a===mine?[userRes[0],userRes[1]]:[userRes[1],userRes[0]]; } else [sa,sb]=simRep(a,b,mine);
+    T.results.push({a,b,sa,sb,r:T.wc?T.round:null}); newsAdd(tag+REP_TEAMS[a].name+' '+sa+' – '+sb+' '+REP_TEAMS[b].name+'.'); winners.push(sa>sb?a:b);
+    if(a===mine||b===mine){ const won=(a===mine&&sa>sb)||(b===mine&&sb>sa); if(won){ c.rep=clamp(c.rep+(T.wc?4:6),0,100); c.credits+=3; if(!T.wc) c.honours.push({s:c.season,y:c.year,t:'Test win with '+REP_TEAMS[mine].name}); } else c.rep=clamp(c.rep-2,0,100); } }
+  if(T.wc&&T.round<2){ T.round++; T.ties=[]; for(let i=0;i<winners.length;i+=2) T.ties.push([winners[i],winners[i+1]]); newsAdd('World Cup '+WC_ROUNDS[T.round].toLowerCase()+': '+tieLine(T.ties)+'.'); saveLeague(); return; }
+  if(T.wc){ const ch=winners[0]; T.champ=ch; (c.wcHist=c.wcHist||[]).push({y:c.year,champ:ch}); newsAdd(REP_TEAMS[ch].name+' are world champions!');
+    if(ch===mine){ c.rep=clamp(c.rep+12,0,100); c.credits+=8; c.honours.push({s:c.season,y:c.year,t:'World Cup winners with '+REP_TEAMS[mine].name}); } }
   startOffseason();
 }
 function hubTests(B){
-  const c=C(), mine=c.roles.nation, tie=mine&&TEST_TIES.find(t=>t.includes(mine));
-  B.appendChild(el(`<div class="card2"><p class="big2">INTERNATIONAL WEEK</p><p>${TEST_TIES.map(t=>esc(REP_TEAMS[t[0]].name)+' v '+esc(REP_TEAMS[t[1]].name)).join(' · ')}</p><p style="color:var(--muted)">${mine?'You coach '+esc(REP_TEAMS[mine].name)+'. Pick your squad in REP FOOTY, then play or sim the test.':'Build your reputation to be offered a national team.'}</p><div class="row" id="tsBtns"></div></div>`));
+  const c=C(), T=c.tests, mine=c.roles.nation, ties=curTies(), tie=mine&&ties.find(t=>t.includes(mine)), wc=T&&T.wc;
+  const prev=wc?T.results.map(r=>`${WC_ROUNDS[r.r]==='FINAL'?'Final':WC_ROUNDS[r.r]==='SEMI-FINALS'?'SF':'QF'}: ${esc(REP_TEAMS[r.a].abbr)} ${r.sa} – ${r.sb} ${esc(REP_TEAMS[r.b].abbr)}`).join(' · '):'';
+  const out=wc&&mine&&!tie&&T.results.some(r=>r.a===mine||r.b===mine);
+  B.appendChild(el(`<div class="card2"><p class="big2">${wc?'WORLD CUP '+c.year+' · '+WC_ROUNDS[T.round]:'INTERNATIONAL WEEK'}</p><p>${ties.map(t=>esc(REP_TEAMS[t[0]].name)+' v '+esc(REP_TEAMS[t[1]].name)).join(' · ')}</p>${prev?'<p style="color:var(--muted)">'+prev+'</p>':''}<p style="color:var(--muted)">${mine?(out?esc(REP_TEAMS[mine].name)+' are out. Sim the rest of the tournament.':'You coach '+esc(REP_TEAMS[mine].name)+'. Pick your squad in REP FOOTY, then play or sim the '+(wc?'game':'test')+'.'):'Build your reputation to be offered a national team.'}</p><div class="row" id="tsBtns"></div></div>`));
   const btns=$('tsBtns');
   if(tie){ const opp=tie[0]===mine?tie[1]:tie[0];
     const pk=document.createElement('button'); pk.type='button'; pk.className='pxbtn ghost'; pk.textContent='PICK SQUAD'; pk.onclick=()=>{ hubTab='rep'; repEdit=mine; renderHub(); }; btns.appendChild(pk);
     const pl=document.createElement('button'); pl.type='button'; pl.className='pxbtn big'; pl.textContent='PLAY '+REP_TEAMS[mine].abbr+' V '+REP_TEAMS[opp].abbr; pl.onclick=()=>playRep(mine,opp,{type:'test',mine,opp}); resumeButton(pl,x=>x.type==='test'&&x.mine===mine); btns.appendChild(pl); }
-  const sm=document.createElement('button'); sm.type='button'; sm.className='pxbtn'+(tie?' ghost':''); sm.textContent=tie?'SIM TEST':'SIM INTERNATIONALS'; sm.onclick=()=>{ finishTests(null); renderHub(); }; btns.appendChild(sm);
+  const sm=document.createElement('button'); sm.type='button'; sm.className='pxbtn'+(tie?' ghost':''); sm.textContent=tie?(wc?'SIM GAME':'SIM TEST'):(wc?'SIM '+WC_ROUNDS[T.round]:'SIM INTERNATIONALS'); sm.onclick=()=>{ finishTests(null); renderHub(); }; btns.appendChild(sm);
 }
 function repReview(){
   // reputation decides who offers you a job; a poor season can cost you a rep role
@@ -3312,25 +3328,45 @@ function repReview(){
   if(c.roles.origin&&c.rep<ORIGIN_REP-8){ newsAdd(REP_TEAMS[c.roles.origin].name+' replaced you as coach.'); c.roles.origin=null; }
   if(c.roles.nation&&c.rep<NATION_REP[c.roles.nation]-10){ newsAdd(REP_TEAMS[c.roles.nation].name+' replaced you as coach.'); c.roles.nation=null; }
   if(!c.roles.origin&&c.rep>=ORIGIN_REP) c.offers.push({k:'origin',v:stateFor(myClub())});
-  const nations=Object.keys(NATION_REP).filter(n=>c.rep>=NATION_REP[n]&&n!==c.roles.nation&&(!c.roles.nation||NATION_REP[n]>NATION_REP[c.roles.nation]));
-  if(nations.length){ const best=Math.max(...nations.map(n=>NATION_REP[n])); for(const n of shuffle(nations.filter(n=>NATION_REP[n]===best)).slice(0,2)) c.offers.push({k:'nation',v:n}); }
-  if(c.offers.length) newsAdd('Coaching offers: '+c.offers.map(o=>REP_TEAMS[o.v].name).join(', ')+'.');
+  // every national team you qualify for (up to three, best first); if you already coach one, only the same level or higher
+  const nations=shuffle(Object.keys(NATION_REP).filter(n=>c.rep>=NATION_REP[n]&&n!==c.roles.nation&&(!c.roles.nation||NATION_REP[n]>=NATION_REP[c.roles.nation]))).sort((a,b)=>NATION_REP[b]-NATION_REP[a]).slice(0,3);
+  for(const n of nations) c.offers.push({k:'nation',v:n});
+  // other clubs want you as head coach: the better the club, the more reputation it takes
+  const rk={}; ladder().forEach((r,k)=>rk[r.i]=k+1);
+  const able=shuffle([...clubs().keys()].filter(ci=>ci!==c.club&&c.rep+5>=20+(17-(rk[ci]||9))*3.5));
+  for(const ci of able.slice(0,Math.min(able.length,2+(rnd()<.5?1:0))).sort((a,b)=>rk[a]-rk[b])) c.offers.push({k:'club',v:ci,rk:rk[ci]});
+  if(c.offers.length) newsAdd('Coaching offers: '+c.offers.map(o=>o.k==='club'?clubs()[o.v].name:REP_TEAMS[o.v].name).join(', ')+'.');
 }
 function renderOffers(B){
   const c=C(); if(!c.offers||!c.offers.length) return;
-  const box=el('<div class="card2" style="margin-top:10px"><p class="big2">COACHING OFFERS</p><p>Your reputation has other teams calling. You keep your club job either way.</p><div class="row" id="ofBtns"></div></div>'); B.appendChild(box);
-  for(const o of c.offers){ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'; b.textContent='COACH '+REP_TEAMS[o.v].name.toUpperCase();
+  const clubsO=c.offers.filter(o=>o.k==='club'&&c.phase==='offseason'&&c.off&&c.off.step==='review'), repO=c.offers.filter(o=>o.k!=='club');
+  if(clubsO.length){ const box=el(`<div class="card2" style="margin-top:10px"><p class="big2">CLUB JOBS</p><p>These clubs want you as head coach. Take one and you move now: your coaching staff, credits and reputation come with you, but the facilities belong to the club. Offers lapse once you start the off-season.</p></div>`); B.appendChild(box);
+    const tb=document.createElement('table'); tb.className='lad'; tb.innerHTML='<tr><th class="l">CLUB</th><th>FINISHED</th><th>RATING</th><th>CAP ROOM</th><th>FACILITIES</th></tr>';
+    for(const o of clubsO){ const cl=clubs()[o.v], tr=document.createElement('tr'), lv=clubFacLevel(o.rk);
+      tr.innerHTML=`<td class="l">${esc(cl.name)}</td><td>${ordinal(o.rk)}</td><td>${Math.round(teamOvr(cl))}</td><td>${money(Math.max(0,c.cap-payroll(cl)))}</td><td>LEVEL ${lv}</td>`;
+      const b=document.createElement('button'); b.type='button'; b.className='pxbtn sm'; b.textContent='TAKE THE '+cl.abbr+' JOB';
+      b.onclick=()=>{ if(b.dataset.sure!=='1'){ b.dataset.sure='1'; b.textContent='SURE? LEAVE '+myClub().abbr+' FOR '+cl.abbr; return; } switchClub(o.v); renderHub(); };
+      actRow(tb,tr,5).appendChild(b); }
+    const w=el('<div class="tblwrap"></div>'); w.appendChild(tb); box.appendChild(w); }
+  if(!repO.length) return;
+  const box=el('<div class="card2" style="margin-top:10px"><p class="big2">REP JOBS</p><p>Coach a state or national side alongside your club job. You can coach one nation at a time.</p><div class="row" id="ofBtns"></div></div>'); B.appendChild(box);
+  for(const o of repO){ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'; b.textContent='COACH '+REP_TEAMS[o.v].name.toUpperCase()+(o.k==='nation'&&c.roles.nation?' (LEAVE '+REP_TEAMS[c.roles.nation].abbr+')':'');
     b.onclick=()=>{ if(o.k==='origin') c.roles.origin=o.v; else c.roles.nation=o.v; unlockRep(o.v); c.offers=c.offers.filter(x=>x.k!==o.k); c.honours.push({s:c.season,y:c.year,t:'Appointed '+REP_TEAMS[o.v].name+' coach'}); newsAdd('Appointed '+REP_TEAMS[o.v].name+' coach.'); saveLeague(); renderHub(); };
     $('ofBtns').appendChild(b); }
-  const d=document.createElement('button'); d.type='button'; d.className='pxbtn ghost'; d.textContent='NOT THIS YEAR'; d.onclick=()=>{ c.offers=[]; saveLeague(); renderHub(); }; $('ofBtns').appendChild(d);
+  const d=document.createElement('button'); d.type='button'; d.className='pxbtn ghost'; d.textContent='NO REP JOB THIS YEAR'; d.onclick=()=>{ c.offers=c.offers.filter(x=>x.k==='club'); saveLeague(); renderHub(); }; $('ofBtns').appendChild(d);
 }
+function clubFacLevel(rk){ return rk<=4?3:rk<=8?2:1; }
+function switchClub(ci){ const c=C(), old=myClub(), to=clubs()[ci], o=c.offers.find(x=>x.k==='club'&&x.v===ci), lv=clubFacLevel(o?o.rk:9);
+  c.club=ci; c.dead=[]; c.pending=[]; c.fac={train:lv,med:lv,stad:lv}; c.offers=c.offers.filter(x=>x.k!=='club'); for(const cl of clubs()) cl.lineup=null;
+  c.honours.push({s:c.season,y:c.year,t:'Left '+old.name+' to coach '+to.name});
+  newsAdd('You\'ve left '+old.name+' to coach '+to.name+'. Your coaching staff came with you; the facilities here are level '+lv+'.'); saveLeague(); }
 let repEdit=null;
 function hubRep(B){
   const c=C(); ensureCareer();
   const marks=[['ORIGIN',ORIGIN_REP],['PACIFIC',50],['NZ / ENG',65],['AUSTRALIA',80]];
   B.appendChild(el(`<div class="card2"><p class="lbl">COACHING REPUTATION · ${Math.round(c.rep)}/100</p><div class="repbar"><i style="width:${c.rep}%"></i>${marks.map(([t,v])=>`<span style="left:${v}%">${t}</span>`).join('')}</div>
     <p>Win games and make the finals to build your reputation; rep teams offer you jobs at the end of each season. Coach a rep team and you can play as them in Quick Match.</p>
-    <p><b>Origin:</b> ${c.roles.origin?esc(REP_TEAMS[c.roles.origin].name):'not coaching'} · <b>International:</b> ${c.roles.nation?esc(REP_TEAMS[c.roles.nation].name):'not coaching'}</p></div>`));
+    <p><b>Origin:</b> ${c.roles.origin?esc(REP_TEAMS[c.roles.origin].name):'not coaching'} · <b>International:</b> ${c.roles.nation?esc(REP_TEAMS[c.roles.nation].name):'not coaching'}</p><p><b>World Cup:</b> ${isWCYear(c.year)&&c.phase!=='offseason'?'this year, after the finals':'next in '+nextWC(c.year+(c.phase==='offseason'?1:0))}${(c.wcHist||[]).length?' · Past winners: '+c.wcHist.map(w=>REP_TEAMS[w.champ].abbr+' '+w.y).join(', '):''}</p></div>`));
   if(c.phase==='offseason') renderOffers(B);
   const g=c.origin.games; const og=el('<div class="card2" style="margin-top:10px"><p class="lbl">ORIGIN SERIES '+c.year+' · AFTER ROUNDS '+ORIGIN_ROUNDS.map(r=>r).join(', ')+'</p><ul class="news" id="orList"></ul></div>'); B.appendChild(og);
   if(!g.length) $('orList').appendChild(el('<li>No games played yet this year.</li>'));
