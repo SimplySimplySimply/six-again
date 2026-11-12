@@ -1205,7 +1205,7 @@ function scrumLive(){
   b.st='held'; b.h=hb; onReceive(hb); G.phase='live'; G.playT=0; G.ptb.dh=hb;
   for(const p of G.all){ if(!p.scrum) continue; p.scrum=false;
     if(p.team===a){ p.lane=clamp(p.x+(rnd()-.5)*8,2,FW-2); p.depth=3; p.depth0=3; p.rejoin=.5; } else p.mHold=.3; }
-  for(const p of G.P[1-a]) p.offside=!(p.mHold>0)&&p.pos!=='FB'&&(p.y-G.onsideY)*d<-1.2;
+  for(const p of G.P[1-a]) p.offside=!(p.mHold>0)&&p.pos!=='FB'&&(p.y-G.onsideY)*d<-.5;
   if(a===0) G.ts=1;
   G.scrum=null;
 }
@@ -1214,7 +1214,8 @@ function goLive(){
   b.st='held'; b.h=dh; onReceive(dh); G.phase='live'; G.playT=0; G.ptb.tackled.rejoin=.6;
   G.shapeActive=G.ptb.mode==='shape'; if(a===0) G.shapeCall=false;
   if(a===0) G.ts=1;
-  for(const p of G.P[1-a]){ p.offside=p!==G.marker&&p.pos!=='FB'&&!p.drop&&(p.y-G.onsideY)*d<-1.2; p.inter=false; }
+  // anyone more than half a metre in front of the 10m line when the ball is played is offside until he's back or the ball has gone past him
+  for(const p of G.P[1-a]){ p.offside=p!==G.marker&&p.pos!=='FB'&&!p.drop&&(p.y-G.onsideY)*d<-.5; p.inter=false; }
   if(G.marker) G.marker.mHold=.35;
   const ls=LS[G.lineSpeed[1-a]];
   if(rnd()<ls.off){ bump(G.marker,'pen'); penalty(a,G.ptb.x,G.ptb.y+d*10,'OFFSIDE'); }
@@ -1643,9 +1644,15 @@ function supportAI(p,dt,f,a,d){
   else {
     if(p.run&&G.playT<2.6){ // hit-up and front-door lines arrive flat onto the ball; the back-door runner stays deep and drifts wide
       const u=clamp((G.playT-.15)/1.1,0,1); p.depth=lerp(p.depth0,p.run===3?4.4:.7,u); p.lane=clamp(p.lane+p.ang*dt,2,FW-2); }
-    const gap=p.lane-f.x; tx=p.lane; ty=f.y-d*p.depth;
+    const gap=p.lane-f.x;
+    // once the ball is off the ruck and a runner has it, the backline comes up flat behind him so he can draw and pass:
+    // about 1.5m back when close, up to about 2.5m out wide. Anyone who's dropped off the pace goes flat out to catch up
+    if(!atRuck&&b.st==='held'&&G.playT>.5&&!(p.run&&G.playT<2.6)&&Math.abs(gap)<22){ const tgt=clamp(1.3+Math.abs(gap)*.07,1.3,2.8); if(p.depth>tgt) p.depth=Math.max(tgt,p.depth-2.2*dt); }
+    tx=p.lane; ty=f.y-d*p.depth;
     if(Math.abs(gap)<2.6) tx=f.x+(gap>=0?1:-1)*2.6;
   }
+  if(b.st==='held'&&!atRuck){ // match the runner's pace: aim ahead by his speed so support doesn't trail behind its spot, and sprint if it's fallen behind
+    ty+=clamp(f.vy/3,-3,3); const lag=(f.y-p.y)*d-(sup?2:p.depth); if(lag>.6) cap=mx*(lag>1.5?1.45:1.15); }
   if((ty-p.y)*d<0){ // never run back towards our own line: hold, only walk back if well in front of the ball
     const ahead=(p.y-f.y)*d;
     if(ahead>3){ ty=p.y-d*1; cap=Math.min(cap,1.5); } else ty=p.y;
@@ -1889,7 +1896,7 @@ function stepLive(dt){
 function checkCarrier(c,a,d){
   if(c.x<0||c.x>FW){ tjFlag(c.x<34?0:1); bump(c,'err'); return turnover('INTO TOUCH',c.team,c.x,c.y); }
   if((c.y-oppTry(a))*d>=0) return scoreTry(c);
-  if(!G.contact){ for(const q of G.P[1-a]){ if(q.down>0||q.bite>0||q.off||q.team===c.team) continue; if(hyp(q.x-c.x,q.y-c.y)<(G.lineSpeed[1-a]==='passive'&&Math.abs(oppTry(a)-c.y)<10?1.35:1)*(q.team===1?D3(.85,1.08,1.22):D3(1.15,1,.95))){ if(q.offside){ if(!q.inter&&rnd()<.15){ bump(q,'pen'); return penalty(a,c.x,c.y,'OFFSIDE · INTERFERENCE'); } q.inter=true; continue; } startContact(c,q); break; } } }
+  if(!G.contact){ for(const q of G.P[1-a]){ if(q.down>0||q.bite>0||q.off||q.team===c.team) continue; if(hyp(q.x-c.x,q.y-c.y)<(G.lineSpeed[1-a]==='passive'&&Math.abs(oppTry(a)-c.y)<10?1.35:1)*(q.team===1?D3(.85,1.08,1.22):D3(1.15,1,.95))){ if(q.offside){ bump(q,'pen'); return penalty(a,c.x,c.y,'OFFSIDE · INTERFERENCE'); } /* an offside player who gets in the runner's way gives away the penalty */ startContact(c,q); break; } } }
   if(!G.lbShown&&G.playT>.4&&!G.contact){ const line=G.P[1-a].filter(p=>p.pos!=='FB'); if(line.every(p=>p.down>0||(p.y-c.y)*d<-.6)){ G.lbShown=true; G.stats[a].lb++; bump(c,'lb'); const LA=G.assist; if(LA&&LA.team===a&&LA.to===c.rec&&LA.rec!==c.rec&&G.ps[LA.rec]) G.ps[LA.rec].lba++; banner('LINE BREAK!','small'); SFX.cheer(); } }
 }
 function stepPTB(dt){
