@@ -131,6 +131,7 @@ button{font:inherit;color:inherit}
 .how p{font-size:14px}
 .tblwrap{overflow-x:auto;margin-top:8px}
 .sheet{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px;min-width:520px}
+.sheet.qsT{min-width:0}.sheet.qsT th:nth-child(2),.sheet.qsT td:nth-child(2){text-align:left;white-space:nowrap}.sheet.qsT th:nth-child(3),.sheet.qsT td:nth-child(3){text-align:center}.sheet.qsT tr.me td{background:rgba(255,178,46,.14)}
 .sheet th{font-family:var(--display);font-size:10px;color:var(--muted);text-align:center;padding:4px;letter-spacing:.06em}
 .sheet th:nth-child(3){text-align:left}
 .sheet td{padding:4px;border-bottom:1px solid #22362c;text-align:center}
@@ -314,15 +315,32 @@ textarea.tx.code{width:100%;font-family:'Courier New',monospace;font-size:11px;l
       <div class="grid" id="repGrid"></div>
       <div class="row">
         <button class="pxbtn ghost sm" id="qBack" type="button">BACK</button>
+        <span class="grow"></span>
+        <button class="pxbtn big" id="qNext" type="button">NEXT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="qSetup" hidden>
+    <div class="panel">
+      <div class="vs" id="qsVs"></div>
+      <div class="row" style="justify-content:center">
         <span class="lbl">MATCH LENGTH</span>
         <div class="seg" id="lenSeg"><button type="button" data-len="short">SHORT</button><button type="button" data-len="std" class="on">STANDARD</button><button type="button" data-len="long">LONG</button></div>
-        <span class="grow"></span>
-        <button class="pxbtn big" id="startBtn" type="button">KICK OFF</button>
       </div>
-      <div class="row kitRow">
+      <div class="row kitRow" style="justify-content:center">
         <span class="lbl">YOUR KIT</span><canvas class="kitMini" id="kitYouC" width="22" height="34"></canvas><div class="seg" id="kitYou"><button type="button" data-k="home">HOME</button><button type="button" data-k="away">AWAY</button></div>
         <span class="lbl" style="margin-left:10px">THEIR KIT</span><canvas class="kitMini" id="kitOppC" width="22" height="34"></canvas><div class="seg" id="kitOpp"><button type="button" data-k="home">HOME</button><button type="button" data-k="away">AWAY</button></div>
         <span class="lbl" id="kitNote"></span>
+      </div>
+      <div class="row" style="justify-content:center"><div class="seg" id="qsView"><button type="button" data-v="me" class="on">YOUR TEAM</button><button type="button" data-v="opp">THEIR TEAM</button></div></div>
+      <p class="lbl" id="qsHint"></p>
+      <div class="msg bad" id="qsMsg" hidden></div>
+      <div class="tblwrap"><table class="sheet qsT" id="qsTeam"></table></div>
+      <div class="row">
+        <button class="pxbtn ghost sm" id="qsBack" type="button">BACK</button>
+        <span class="grow"></span>
+        <button class="pxbtn big" id="startBtn" type="button">KICK OFF</button>
       </div>
     </div>
   </div>
@@ -1045,7 +1063,7 @@ function savedMatch(){ const S=store.get('match',null); return S&&S.v===1&&S.sid
 function syncResume(){ const b=$('hResume'); if(!b) return; const S=savedMatch(); b.hidden=!S; if(S) $('hResumeTxt').textContent=S.label; }
 function resumeMatch(S){
   const opts=ctxOpts(S.ctx); if(opts===null){ clearMatchSave(); return false; }
-  audio(); goFull(); ['home','menu','careerHub'].forEach(id=>$(id).hidden=true);
+  audio(); goFull(); ['home','menu','qSetup','careerHub'].forEach(id=>$(id).hidden=true);
   setupMatch(S.sides[0],S.sides[1],S.len,opts);
   Object.assign(G,{score:[...S.score],half:S.half,clock:S.clock,stats:S.stats,lineSpeed:[...S.lineSpeed],tryRecs:S.tryRecs,ic:S.ic,golden:!!S.golden,goldenEnd:S.goldenEnd||0,hooterDone:!!S.hooterDone,bench:S.bench,firstRecv:S.firstRecv});
   G.officials=mkOfficials(); if(S.ps) G.ps=S.ps;
@@ -1190,7 +1208,7 @@ function startTutorial(){
   const me=sideFromClub(clubs()[youI]), opp=clubs()[(youI+5)%clubs().length], base=sideFromClub(opp);
   const soft=r=>({...r,id:'tut_'+r.id,r:Object.fromEntries(Object.entries(r.r).map(([k,v])=>[k,+(v*.75).toFixed(3)]))});
   const them={...base,id:'tut',name:'Training Squad',abbr:'TRN',c1:'#8d988f',c2:'#ffb22e',c3:'#3b463f',pat:'band',style:'middle',starters:base.starters.map(soft),bench:[]};
-  $('home').hidden=true; $('menu').hidden=true; $('tutAsk').hidden=true; audio(); goFull();
+  $('home').hidden=true; $('menu').hidden=true; $('qSetup').hidden=true; $('tutAsk').hidden=true; audio(); goFull();
   newMatch(me,them,'std',{tutorial:true});
   // a training squad of seven: fullback plus six in the line, all on a passive line. Enough to stop a straight run, not enough to stop a good one
   const keep=['FB','HK','LK','FE','CE','PR','HB']; G.P[1].forEach(p=>{ if(!keep.includes(p.pos)||G.P[1].filter(q=>q.pos===p.pos).indexOf(p)>0) p.off=true; }); parkOff();
@@ -2559,15 +2577,15 @@ function renderClubs(){
 let kitYou='home', kitOpp=null; // null = automatic (switch to away on a clash)
 function quickKits(oo){ const ky=kitYou, ko=kitOpp||(!oo?'home':autoKit(youObj(),oo,ky)); return [ky,ko]; }
 function syncKits(){
-  const [ky,ko]=quickKits(oppObj());
+  const [ky,ko]=quickKits(curOpp());
   document.querySelectorAll('#kitYou button').forEach(b=>b.classList.toggle('on',b.dataset.k===ky));
   document.querySelectorAll('#kitOpp button').forEach(b=>b.classList.toggle('on',b.dataset.k===ko));
   const dr=(id,cl,k)=>{ const cv=$(id), c2=cv.getContext('2d'); c2.imageSmoothingEnabled=false; c2.clearRect(0,0,cv.width,cv.height); if(cl) drawKit(c2,kitOf(cl,k),10,32,2); };
-  dr('kitYouC',youObj(),ky); dr('kitOppC',oppObj(),ko);
-  $('kitNote').textContent=oppObj()&&kitClash(kitOf(youObj(),ky),kitOf(oppObj(),ko))?'· THESE KITS CLASH':'';
+  dr('kitYouC',youObj(),ky); dr('kitOppC',curOpp(),ko);
+  $('kitNote').textContent=curOpp()&&kitClash(kitOf(youObj(),ky),kitOf(curOpp(),ko))?'· THESE KITS CLASH':'';
 }
-document.querySelectorAll('#kitYou button').forEach(b=>b.onclick=()=>{ kitYou=b.dataset.k; syncKits(); });
-document.querySelectorAll('#kitOpp button').forEach(b=>b.onclick=()=>{ kitOpp=b.dataset.k; syncKits(); });
+document.querySelectorAll('#kitYou button').forEach(b=>b.onclick=()=>{ kitYou=b.dataset.k; syncKits(); drawQsVs(); });
+document.querySelectorAll('#kitOpp button').forEach(b=>b.onclick=()=>{ kitOpp=b.dataset.k; syncKits(); drawQsVs(); });
 function syncMenu(){
   if(REP_READY&&youRep&&!repUnlocked().has(youRep)) youRep=null;
   const rt=(cl,key)=>{ const r=rateFor(cl,key); return ' <span class="stars" style="font-size:13px">'+starStr(r.st)+'</span><span class="ovr" style="font-size:14px">'+r.o+'</span>'; };
@@ -2578,7 +2596,7 @@ function syncMenu(){
 }
 $('pickYou').onclick=()=>{ picking='you'; syncMenu(); };
 $('pickOpp').onclick=()=>{ picking='opp'; syncMenu(); };
-document.querySelectorAll('#lenSeg button').forEach(b=>b.onclick=()=>{ len=b.dataset.len; syncMenu(); });
+document.querySelectorAll('#lenSeg button').forEach(b=>b.onclick=()=>{ len=b.dataset.len; store.set('len',len); renderQs(); });
 function syncSound(){ const t=muted?'SOUND OFF':'SOUND ON'; $('hSound').textContent=t; $('pSound').textContent=t; }
 $('hSound').onclick=$('pSound').onclick=()=>{ muted=!muted; store.set('muted',muted); audio(); syncSound(); SFX.blip(); };
 function syncDiff(){ const lab=(DIFFS.find(d=>d[0]===DIFF)||DIFFS[1])[1]+(DIFF==='adaptive'?' · '+adaptLabel():''); for(const id of ['hDiff','pDiff']) $(id).textContent='DIFFICULTY: '+lab; }
@@ -2658,14 +2676,56 @@ function startMatch(sA,sB,len,opts){
   const go=()=>newMatch(sA,sB,len,opts||{});
   if(!(opts&&opts.tutorial)&&!store.get('tutDone',false)&&!store.get('tutSkip',false)){ G.pendingStart=go; $('tutAsk').hidden=false; } else go();
 }
-$('startBtn').onclick=()=>{
-  let o=oppI, oR=oppRep; if(o<0&&!oR){ if(youRep) oR=repRival(youRep); else do{ o=Math.floor(rnd()*clubs().length); }while(o===youI); }
-  const oo=oR?REP_TEAMS[oR]:clubs()[o], [ky,ko]=quickKits(oo);
-  const me=youRep?repSide(youRep,false):sideFromClub(clubs()[youI],ky), them=oR?repSide(oR,false):sideFromClub(clubs()[o],ko);
-  $('menu').hidden=true; startMatch(me,them,len,{});
-};
+// quick match, step 2: kits, match length and your line-up
+let qRes=null, qsView='me', qsSwap=null;
+function curOpp(){ return qRes?(qRes.rep?REP_TEAMS[qRes.rep]:clubs()[qRes.i]):oppObj(); }
+function qRepIds(key){ const all=store.get('qRepSel',{}), pool=new Set(eligibleFor(key).map(x=>x.p.id)); let ids=all[key];
+  if(!ids||ids.length!==13||ids.some(id=>!id||!pool.has(id))){ ids=autoPickIds(key); all[key]=ids; store.set('qRepSel',all); } return ids; }
+function qSides(){ const [ky,ko]=quickKits(curOpp());
+  const me=youRep?repSide(youRep,false,qRepIds(youRep)):sideFromClub(clubs()[youI],ky), them=qRes.rep?repSide(qRes.rep,false):sideFromClub(clubs()[qRes.i],ko);
+  return [me,them]; }
+function drawQsVs(){ const v=$('qsVs'); if(!v||!qRes) return; v.innerHTML=''; const [ky,ko]=quickKits(curOpp());
+  const side=(obj,k,key)=>{ const d=document.createElement('div'); d.className='side'; d.appendChild(kitCanvas(kitOf(obj,k),2)); const r=rateFor(obj,key);
+    d.appendChild(el(`<b>${esc(obj.name.toUpperCase())}</b>`)); d.appendChild(el(`<span class="stars">${starStr(r.st)}<b class="ovr">${r.o}</b></span>`)); return d; };
+  v.appendChild(side(youObj(),ky,youRep)); v.appendChild(el('<span class="v">V</span>')); v.appendChild(side(curOpp(),ko,qRes.rep)); }
+function qsMsg(t){ const m=$('qsMsg'); m.textContent=t||''; m.hidden=!t; }
+function renderQs(){
+  document.querySelectorAll('#qsView button').forEach(b=>b.classList.toggle('on',b.dataset.v===qsView));
+  document.querySelectorAll('#lenSeg button').forEach(b=>b.classList.toggle('on',b.dataset.len===len));
+  syncKits(); drawQsVs();
+  const mine=qsView==='me', tb=$('qsTeam'); tb.innerHTML='<tr><th>SPOT</th><th>PLAYER</th><th>PLAYS</th><th>RATING</th><th></th></tr>';
+  $('qsHint').textContent=mine?(youRep?'TAP SWAP ON TWO PLAYERS TO CHANGE YOUR SIDE · INT IS THE BENCH':'TAP SWAP ON TWO PLAYERS TO CHANGE WHO STARTS · INT IS THE BENCH (3 FORWARDS, 1 BACK), PICKED FROM THE REST'):'THEIR SIDE FOR THIS MATCH';
+  const [me,them]=qSides(), sd=mine?me:them; let rows=[...sd.starters.map((p,k)=>({p,lab:ORDER[k][0],slot:true})),...sd.bench.map(p=>({p,lab:'INT'}))];
+  if(mine){ const used=new Set(rows.map(r=>r.p.id));
+    const rest=youRep?eligibleFor(youRep).map(x=>x.p).filter(p=>!used.has(p.id)).sort((a,b)=>ovr(b)-ovr(a)).slice(0,10):clubs()[youI].players.filter(p=>!used.has(p.id)).sort((a,b)=>(a.inj?1:0)-(b.inj?1:0)||ovr(b)-ovr(a));
+    rows.push(...rest.map(p=>({p,lab:p.inj?'INJ':'RES'}))); }
+  rows.forEach(({p,lab,slot},idx)=>{ const tr=document.createElement('tr'); if(qsSwap===p.id) tr.className='me'; if(idx===9||idx===13) tr.style.borderTop='2px solid #000';
+    const oop=slot&&p.pos!==lab;
+    tr.innerHTML=`<td>${lab}</td><td class="nm"></td><td class="${oop?'oopT':''}" style="${oop?'color:var(--alert)':''}">${p.pos}</td><td class="stars">${rateHtml(p)}</td><td></td>`;
+    tr.querySelector('.nm').textContent=nameTag(p);
+    if(mine&&!p.pad){ const sw=document.createElement('button'); sw.type='button'; sw.className='pxbtn sm'+(qsSwap===p.id?'':' ghost'); sw.textContent=qsSwap===p.id?'CANCEL':qsSwap?'WITH':'SWAP'; sw.disabled=!!p.inj&&!slot;
+      sw.onclick=()=>{ if(!qsSwap){ qsSwap=p.id; renderQs(); return; } if(qsSwap===p.id){ qsSwap=null; renderQs(); return; } qsDoSwap(qsSwap,p.id); };
+      tr.lastElementChild.appendChild(sw); }
+    tb.appendChild(tr); });
+}
+function qsDoSwap(a,b){ qsSwap=null; qsMsg('');
+  if(youRep){ const all=store.get('qRepSel',{}), ids=[...qRepIds(youRep)], ia=ids.indexOf(a), ib=ids.indexOf(b);
+    if(ia>=0&&ib>=0){ ids[ia]=b; ids[ib]=a; } else if(ia>=0) ids[ia]=b; else if(ib>=0) ids[ib]=a; else { qsMsg('Swap with one of the players in your side.'); renderQs(); return; }
+    all[youRep]=ids; store.set('qRepSel',all); renderQs(); return; }
+  const cl=clubs()[youI], ids=lineupOf(cl).map(p=>p.id), pa=cl.players.find(p=>p.id===a), pb=cl.players.find(p=>p.id===b), ia=ids.indexOf(a), ib=ids.indexOf(b);
+  if(!pa||!pb){ renderQs(); return; }
+  if((ia<0&&pa.inj)||(ib<0&&pb.inj)){ qsMsg('Injured players can\'t be picked to start.'); renderQs(); return; }
+  if(ia>=0&&ib>=0){ ids[ia]=b; ids[ib]=a; } else if(ia>=0) ids[ia]=b; else if(ib>=0) ids[ib]=a;
+  else { qsMsg('Swap with one of your starting nine. The bench picks itself from everyone else.'); renderQs(); return; }
+  cl.lineup=ids; saveLeague(); renderQs(); }
+document.querySelectorAll('#qsView button').forEach(b=>b.onclick=()=>{ qsView=b.dataset.v; qsSwap=null; qsMsg(''); renderQs(); });
+$('qNext').onclick=()=>{ audio(); SFX.blip(); let o=oppI, oR=oppRep;
+  if(o<0&&!oR){ if(youRep) oR=repRival(youRep); else do{ o=Math.floor(rnd()*clubs().length); }while(o===youI); }
+  qRes={i:o,rep:oR}; qsView='me'; qsSwap=null; qsMsg(''); $('menu').hidden=true; $('qSetup').hidden=false; renderQs(); };
+$('qsBack').onclick=()=>{ qRes=null; qsSwap=null; $('qSetup').hidden=true; syncMenu(); $('menu').hidden=false; };
+$('startBtn').onclick=()=>{ if(!qRes) return; const [me,them]=qSides(); $('qSetup').hidden=true; qRes=null; startMatch(me,them,len,{}); };
 $('qBack').onclick=()=>{ $('menu').hidden=true; showHome(); };
-function showHome(){ if(typeof syncDiff==='function') syncDiff(); if(typeof syncTutBtn==='function') syncTutBtn(); ['menu','clubsModal'].forEach(id=>$(id).hidden=true); if($('careerHub')) $('careerHub').hidden=true; $('home').hidden=false; if(LEAGUE&&LEAGUE.career) pruneMatchSave(); syncResume(); drawHomeKits(); syncSaveNote(); }
+function showHome(){ if(typeof syncDiff==='function') syncDiff(); if(typeof syncTutBtn==='function') syncTutBtn(); ['menu','qSetup','clubsModal'].forEach(id=>$(id).hidden=true); qRes=null; if($('careerHub')) $('careerHub').hidden=true; $('home').hidden=false; if(LEAGUE&&LEAGUE.career) pruneMatchSave(); syncResume(); drawHomeKits(); syncSaveNote(); }
 $('hResume').onclick=()=>{ const S=savedMatch(); if(!S) return syncResume(); if(!resumeMatch(S)){ $('saveNote').textContent='THAT MATCH HAS ALREADY BEEN PLAYED OR SIMMED, SO IT CAN\'T BE RESUMED'; } };
 $('hQuick').onclick=()=>{ audio(); SFX.blip(); $('home').hidden=true; syncMenu(); $('menu').hidden=false; };
 $('hClubs').onclick=()=>{ audio(); SFX.blip(); $('home').hidden=true; ceSel=youI; renderCE(); $('clubsModal').hidden=false; };
@@ -3518,9 +3578,9 @@ function autoPickIds(key){
   const bench=[...F,...Bk].map(p=>p.id); while(bench.length<4) bench.push(null);
   return [...ids,...bench];
 }
-function repSide(key,useSel){
+function repSide(key,useSel,force){
   const c=C(), byId={}; for(const {p} of repPool()) byId[p.id]=p;
-  let ids=(useSel&&c&&c.repSel&&c.repSel[key]&&c.repSel[key].length===13)?c.repSel[key]:autoPickIds(key);
+  let ids=force&&force.length===13?force:(useSel&&c&&c.repSel&&c.repSel[key]&&c.repSel[key].length===13)?c.repSel[key]:autoPickIds(key);
   const used=new Set(); const recs=ids.map((id,i)=>{ let p=id&&byId[id]; if(p&&(used.has(p.id)||p.inj)) p=null; if(p){ used.add(p.id); return p; } const pos=i<9?ORDER[i][0]:BENCH[i-9]; return padPlayer(key,pos,i); });
   const T=REP_TEAMS[key], starters=recs.slice(0,9), bench=recs.slice(9,13);
   // each nation starts at its rung's strength, then rises and falls point for point with its players (up to 10 either way):
