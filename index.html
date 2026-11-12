@@ -560,6 +560,15 @@ function colD(a,b){ const x=hexRGB(a), y=hexRGB(b); return Math.sqrt((x[0]-y[0])
 function kitClash(k1,k2){ return colD(k1.c1,k2.c1)<70; }
 function autoKit(homeCl,awayCl,homeSide){ // the away club changes if the two kits look alike
   return kitClash(kitOf(homeCl,homeSide||'home'),kitOf(awayCl,'home'))&&awayCl.a1&&!kitClash(kitOf(homeCl,homeSide||'home'),kitOf(awayCl,'away'))?'away':'home'; }
+// leagues made before the wider nationality mix: switch some Australian players to their heritage nation so every nation has a real pool
+function ensureNats(L){ if(L.nats2) return false; const all=[]; for(const cl of L.clubs) for(const p of cl.players) all.push(p);
+  if(L.career&&L.career.market) all.push(...L.career.market);
+  const cnt={}; for(const p of all) cnt[p.nat]=(cnt[p.nat]||0)+1;
+  // take players from whichever Origin state has more, so Queensland and New South Wales stay evenly matched
+  const st={QLD:shuffle(all.filter(p=>p.nat==='AUS'&&p.origin==='QLD')),NSW:shuffle(all.filter(p=>p.nat==='AUS'&&p.origin!=='QLD'))};
+  for(const [n,w] of NATS){ if(n==='AUS') continue; let need=Math.round(all.length*w)-(cnt[n]||0);
+    while(need-->0&&st.QLD.length+st.NSW.length>all.length*.45){ const p=(st.QLD.length>st.NSW.length?st.QLD:st.NSW).pop(); p.nat=n; p.origin=null; } }
+  if(L.career) L.career.repSel={}; L.nats2=true; return true; }
 function ensureAway(L){ if(L.away1) return false; L.clubs.forEach((cl,i)=>{ if(!cl.a1) setAway(cl,i); }); L.away1=true; return true; }
 // kit colours before version 20, so saved clubs still on them get the new kits
 const OLD_KITS=[['#127c7c','#f2c14e','#0b3d3d','band'],['#57b6e6','#c62f2f','#123a52','v'],['#e8c766','#1d3557','#1d3557','hoops'],['#1f6b45','#f2b632','#0e3322','v'],['#2e3440','#ef7d32','#151820','band'],['#1e2f6b','#a6d608','#101a3d','hoops'],['#e56b1f','#f4f4f4','#3a1a08','v'],['#5b2a86','#f3f3f3','#2a123f','band'],['#7a1e2e','#8ec9ef','#3d0e17','hoops'],['#2a8c4a','#f1f1f1','#123d20','v'],['#1a1a1a','#e2b13c','#0d0d0d','band'],['#1f55c7','#f2f2f2','#0e2a66','v'],['#c8102e','#141414','#141414','hoops'],['#f2f2f2','#6a2c91','#6a2c91','band'],['#f3d02a','#161616','#161616','v'],['#6b3f24','#f08a24','#2e1a0e','band'],['#121212','#23b5b0','#0b0b0b','hoops']];
@@ -660,7 +669,7 @@ const SFX={
 // ---------------------------------------------------------------- teams
 // ---------------------------------------------------------------- league (saved)
 const CLUB_STATE={Brisbane:'QLD',Redcliffe:'QLD','Gold Coast':'QLD',Townsville:'QLD',Melbourne:'VIC',Canberra:'ACT',Auckland:'NZ'};
-const NATS=[['AUS',.6],['NZL',.15],['TGA',.08],['SAM',.08],['PNG',.03],['FIJ',.03],['ENG',.03]];
+const NATS=[['AUS',.45],['NZL',.14],['TGA',.09],['SAM',.09],['ENG',.07],['FIJ',.06],['PNG',.05],['COK',.05]];
 const BENCH=['PR','LK','HK','CE'];
 const OVR_W={FB:{spd:.25,han:.2,kick:.1,def:.2,str:.1,sta:.15},WG:{spd:.4,han:.2,str:.1,def:.15,sta:.15},CE:{spd:.25,str:.25,han:.15,def:.2,sta:.15},FE:{han:.3,kick:.25,spd:.15,def:.1,sta:.2},HB:{han:.3,kick:.35,spd:.1,def:.1,sta:.15},PR:{str:.4,def:.25,sta:.25,han:.1},HK:{han:.3,def:.3,sta:.25,spd:.15},LK:{str:.3,def:.35,sta:.25,han:.1}};
 function ovr(p){ const w=OVR_W[p.pos]; let o=0; for(const k in w) o+=w[k]*p.r[k]; return Math.round(o*99); }
@@ -712,7 +721,7 @@ function genClub(i){
   const cl={id:i,name:c[0],abbr:c[1],c1:c[2],c2:c[3],c3:c[4],pat:c[5],style:c[6],rating:c[7],state:st,players,lineup:null}; setAway(cl,i);
   giveStars(cl,true); return cl;
 }
-function genLeague(){ const L={v:2,at:Date.now(),clubs:CLUBS.map((c,i)=>genClub(i)),career:null,stars5:true,kits2:true}; ensureLegends(L); return L; }
+function genLeague(){ const L={v:2,at:Date.now(),clubs:CLUBS.map((c,i)=>genClub(i)),career:null,stars5:true,kits2:true,nats2:true}; ensureLegends(L); return L; }
 // every club gets one or two five-star players (overall 84-89 for their position)
 function makeStar(p){ const w=OVR_W[p.pos], target=84+Math.floor(rnd()*6); let guard=0; while(ovr(p)<target&&guard++<70){ for(const k in w) p.r[k]=+Math.min(.97,p.r[k]+.01).toFixed(3); } }
 function giveStars(cl,resal){
@@ -766,7 +775,7 @@ function benchOf(cl,starters){ const ids=new Set(starters.map(p=>p.id)); const r
   const bench=[...F.slice(0,3),...B.slice(0,1)]; for(const p of rest) if(bench.length<4&&!bench.includes(p)) bench.push(p); return bench.slice(0,4); }
 function sideFromClub(cl,kit){ const st=lineupOf(cl), K=kitOf(cl,kit); return {id:cl.id,name:cl.name,abbr:cl.abbr,c1:K.c1,c2:K.c2,c3:K.c3,pat:K.pat,kit:kit||'home',style:cl.style,rating:cl.rating,starters:st,bench:benchOf(cl,st)}; }
 let LEAGUE=null; const SAVE={ref:null,t:0,cloud:false};
-function loadLeague(){ let L=store.get('league',null), fresh=false; if(!L||L.v!==2||!Array.isArray(L.clubs)||L.clubs.length!==CLUBS.length){ L=genLeague(); fresh=true; } LEAGUE=L; const m1=ensureStars(L), m2=ensureLegends(L), m3=ensureKits(L), m4=ensurePotential(L), m5=ensureAway(L); if(m1||m2||m3||m4||m5||fresh){ L.at=Date.now(); store.set('league',L); } }
+function loadLeague(){ let L=store.get('league',null), fresh=false; if(!L||L.v!==2||!Array.isArray(L.clubs)||L.clubs.length!==CLUBS.length){ L=genLeague(); fresh=true; } LEAGUE=L; const m1=ensureStars(L), m2=ensureLegends(L), m3=ensureKits(L), m4=ensurePotential(L), m5=ensureAway(L), m6=ensureNats(L); if(m1||m2||m3||m4||m5||m6||fresh){ L.at=Date.now(); store.set('league',L); } }
 function saveLeague(){
   LEAGUE.at=Date.now(); store.set('league',LEAGUE);
   clearTimeout(SAVE.t); SAVE.t=setTimeout(()=>{ if(SAVE.ref) SAVE.ref.set({league:JSON.parse(JSON.stringify(LEAGUE)),at:LEAGUE.at}).then(()=>{ SAVE.cloud=true; syncSaveNote(); }).catch(()=>{}); },700);
@@ -778,7 +787,7 @@ async function initCloud(){
     const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]); if(!db||!user) return;
     const uid=await user.id(); if(!uid) return;
     const ref=db.doc('data/users/'+uid+'/league'); const snap=await ref.get(); SAVE.ref=ref; syncSaveNote();
-    if(snap.exists){ const d=snap.data(); if(d&&d.league&&d.league.v===2&&d.league.clubs&&(d.at||0)>(LEAGUE.at||0)){ LEAGUE=JSON.parse(JSON.stringify(d.league)); const m1=ensureStars(LEAGUE), m2=ensureLegends(LEAGUE), m3=ensureKits(LEAGUE), m4=ensurePotential(LEAGUE), m5=ensureAway(LEAGUE); if(m1||m2||m3||m4||m5) saveLeague(); else store.set('league',LEAGUE); onLeagueChanged(); }
+    if(snap.exists){ const d=snap.data(); if(d&&d.league&&d.league.v===2&&d.league.clubs&&(d.at||0)>(LEAGUE.at||0)){ LEAGUE=JSON.parse(JSON.stringify(d.league)); const m1=ensureStars(LEAGUE), m2=ensureLegends(LEAGUE), m3=ensureKits(LEAGUE), m4=ensurePotential(LEAGUE), m5=ensureAway(LEAGUE), m6=ensureNats(LEAGUE); if(m1||m2||m3||m4||m5||m6) saveLeague(); else store.set('league',LEAGUE); onLeagueChanged(); }
       else if((d.at||0)<(LEAGUE.at||0)) saveLeague(); }
     else saveLeague();
     const mref=db.doc('data/users/'+uid+'/match'); MSAVE.ref=mref; const ms=await mref.get();
@@ -2382,7 +2391,7 @@ $('bkRestore').onclick=async()=>{ bkMsg(''); try{ bkPending=await readCode($('bk
 $('bkNo').onclick=()=>{ bkPending=null; $('bkConfirm').hidden=true; };
 $('bkYes').onclick=()=>{ const d=bkPending; if(!d) return; bkPending=null; $('bkConfirm').hidden=true;
   LEAGUE=d.league; const st=d.settings||{}; if(st.diff){ DIFF=st.diff; store.set('diff',DIFF); } if(st.adapt!=null){ ADAPT=st.adapt; store.set('adapt',ADAPT); } if(st.len){ len=st.len; store.set('len',len); } if(st.you!=null){ youI=st.you; store.set('you',youI); }
-  ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); ensurePotential(LEAGUE); ensureAway(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
+  ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); ensurePotential(LEAGUE); ensureAway(LEAGUE); ensureNats(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
   const c=LEAGUE.career; bkMsg('Restored. '+(c?'Your career with '+LEAGUE.clubs[c.club].name+' (season '+c.season+') is ready under CAREER.':'Your clubs and players are back.')); openBackupOut(); };
 async function openBackupOut(){ try{ $('bkOut').value=await makeCode(); }catch(e){} }
 function syncTutBtn(){ const done=store.get('tutDone',false); const b=$('hTut'); b.className='pxbtn '+(done?'ghost':'big'); b.innerHTML=done?'TUTORIAL':'TUTORIAL<small>ABOUT 4 MIN</small>'; }
@@ -3225,7 +3234,7 @@ REP_READY=true; setTimeout(()=>{ if(LEAGUE) syncMenu(); },0);
 const ORIGIN_ROUNDS=[5,9,13], TEST_TIES=[['AUS','NZL'],['TGA','SAM'],['ENG','FIJ'],['PNG','COK']];
 // national jobs are a ladder: Cook Islands, then Fiji or PNG, then Samoa, Tonga or England, then New Zealand or Australia.
 // Nations on the same rung play at a similar strength
-const NATION_TIER={COK:1,FIJ:2,PNG:2,SAM:3,TGA:3,ENG:3,NZL:4,AUS:4}, TIER_REP=[0,35,50,65,80], TIER_STR=[0,60,68,75,83];
+const NATION_TIER={COK:1,FIJ:2,PNG:2,SAM:3,TGA:3,ENG:3,NZL:4,AUS:4}, TIER_REP=[0,35,50,65,80], TIER_STR=[0,64,72,78,86];
 const NATION_REP=Object.fromEntries(Object.entries(NATION_TIER).map(([k,t])=>[k,TIER_REP[t]])), ORIGIN_REP=20;
 function ensureCareer(){ const c=C(); c.market=c.market||[]; if(c.off&&c.off.fa){ c.market.push(...c.off.fa); delete c.off.fa; } if(!c.market.length&&c.phase==='season') for(let i=0;i<10;i++) c.market.push(genFA()); if(!c.statsV){ for(const cl of clubs()){ for(const p of cl.players){ if(!p.st||p.st.gp==null) p.st=blankSt(); } cl.ts=cl.ts||blankTS(); } c.medals=c.medals||[]; c.statsV=1; } c.roles=c.roles||{origin:null,nation:null}; if(c.roles.nation&&!c.natBest) c.natBest=NATION_TIER[c.roles.nation]; c.origin=c.origin||{games:[]}; c.offers=c.offers||[]; c.repSel=c.repSel||{}; if(c.tests===undefined) c.tests=null;
   if(!c.persV){ for(const cl of clubs()) for(const p of cl.players){ giveTraits(p); if(p.yrsAt==null) p.yrsAt=1+Math.floor(rnd()*4); } for(const p of c.market) giveTraits(p); if(c.off&&c.off.draft) for(const p of c.off.draft.pool) giveTraits(p);
