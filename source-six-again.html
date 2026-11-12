@@ -228,6 +228,7 @@ select.sel{font-family:var(--body);font-size:14px;background:#0e1914;color:var(-
 .repT td.oopT{color:var(--alert)}
 .repT tr.gap td{border-top:2px solid #000}
 .repT.choose tr{cursor:pointer}
+.repT.rpk{min-width:0}.repT.rpk td.tk{font-family:var(--display);font-size:11px;width:64px}.repT.rpk tr.off td{color:var(--muted)}.repT.rpk tr.off td.tk{color:var(--alert)}
 .repT.choose tr:hover td,.repT.choose tr.me td{background:rgba(255,178,46,.12)}
 .presetGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
 .preset{display:flex;flex-direction:column;align-items:center;gap:4px;background:#0e1914;border:2px solid #000;padding:8px 4px 6px;cursor:pointer;min-width:0;color:var(--chalk)}
@@ -554,6 +555,243 @@ function ensureNats(L){ if(L.nats2) return false; const all=[]; for(const cl of 
 // leagues made before Pacific players could play Origin: give them an Origin state at the same rates as new players
 function ensureOrigins(L){ if(L.orig2) return false; for(const cl of L.clubs) for(const p of cl.players) if(p.nat!=='AUS'&&!p.origin) p.origin=originFor(p.nat,cl.state);
   if(L.career){ for(const p of L.career.market||[]) if(p.nat!=='AUS'&&!p.origin) p.origin=originFor(p.nat,null); L.career.repSel={}; } L.natBase={}; L.orig2=true; return true; }
+// real players (2027 squads): the Origin and Test players at their 2027 clubs. Each takes the place of a made-up player at
+// his club. Players outside the game's clubs (Super League, Perth, the state cups) sit in an overseas pool for their nation.
+// row: name|club|position|nation|Origin state|age in 2027|overall
+const REAL27=`Reece Walsh|BRI|FB|AUS|QLD|25|88
+Patrick Carrigan|BRI|LK|AUS|QLD|29|86
+Kotoni Staggs|BRI|CE|AUS|NSW|28|84
+Deine Mariner|BRI|CE|SAM||24|78
+Shawn Blore|BRI|LK|SAM||26|78
+Xavier Willison|BRI|PR|NZL||25|77
+Mitch Barnett|BRI|PR|AUS|NSW|33|80
+Dane Gagai|BRI|CE|NZL|QLD|36|74
+Ben Talty|BRI|LK|ENG||24|70
+Selwyn Cobbo|RED|WG|AUS|QLD|25|84
+Hamiso Tabuai-Fidow|RED|FB|SAM|QLD|25|88
+Isaiya Katoa|RED|HB|TGA||23|82
+Thomas Flegler|RED|PR|AUS|QLD|28|84
+Herbie Farnworth|RED|CE|ENG||27|84
+Jack Bostock|RED|WG|AUS|NSW|25|78
+Max Plath|RED|HK|AUS|QLD|25|78
+Jeremy Marshall-King|RED|HK|NZL||32|78
+Morgan Knowles|RED|LK|ENG||31|79
+Kulikefu Finefeuiaki|RED|LK|TGA||26|76
+Connelly Lemuelu|RED|LK|SAM||29|76
+Francis Molo|RED|PR|SAM||33|76
+Kurt Donoghoe|RED|FE|FIJ||25|70
+George Williams|RED|HB|ENG||32|78
+Tino Fa'asuamaleaui|GLD|PR|AUS|QLD|27|86
+Jojo Fifita|GLD|WG|TGA|QLD|23|82
+Moeaki Fotuaika|GLD|PR|TGA||28|82
+AJ Brimson|GLD|FB|ENG||29|79
+Keano Kini|GLD|FB|NZL||23|76
+Reuben Cotter|TSV|LK|AUS|QLD|29|85
+Tom Dearden|TSV|HB|AUS|QLD|26|84
+Jeremiah Nanai|TSV|LK|AUS|QLD|25|82
+Jason Taumalolo|TSV|LK|TGA||34|82
+Sione Katoa|TSV|WG|TGA||30|78
+Soni Luke|TSV|HK|TGA||27|74
+Robert Derby|TSV|WG|PNG||25|70
+Zac Laybutt|TSV|CE|PNG||25|68
+Ronaldo Philitoga|TSV|LK|FIJ||22|63
+Harry Grant|MEL|HK|AUS|QLD|29|89
+Cameron Munster|MEL|FE|AUS|QLD|33|88
+Jahrome Hughes|MEL|HB|NZL||33|87
+Jamayne Isaako|MEL|WG|NZL||31|80
+Sua Fa'alogo|MEL|FB|SAM||23|77
+Stefano Utoikamanu|MEL|PR|TGA||24|80
+Trent Loiero|MEL|LK|AUS|QLD|25|78
+Joseph Litidamu|MEL|WG|FIJ||23|65
+Amare Milford|MEL|WG|COK||20|62
+K-Ci Newton-Whare|MEL|LK|COK||21|60
+David Tuariki|MEL|LK|COK||21|60
+Joseph Tapine|CAN|PR|NZL||33|84
+Hudson Young|CAN|LK|AUS|NSW|29|82
+Ethan Strange|CAN|FE|AUS|NSW|23|80
+Ata Mariota|CAN|HK|SAM||25|70
+Chaev Kolone|CAN|PR|COK||22|62
+Kalyn Ponga|NEW|FB|NZL|QLD|29|88
+Bradman Best|NEW|CE|AUS|NSW|26|84
+Dom Young|NEW|WG|ENG||26|80
+Jacob Saifiti|NEW|PR|FIJ||31|80
+Dylan Lucas|NEW|LK|AUS|NSW|23|78
+Marata Niukore|NEW|LK|COK||31|76
+Pasami Saulo|NEW|PR|SAM||26|72
+Francis Manuleleua|NEW|LK|SAM||23|66
+Jermaine McEwen|NEW|LK|SAM||22|66
+Nathan Cleary|PEN|HB|AUS|NSW|30|90
+Dylan Edwards|PEN|FB|AUS|NSW|31|84
+Brian To'o|PEN|WG|SAM|NSW|29|86
+Liam Martin|PEN|LK|AUS|NSW|30|85
+Isaah Yeo|PEN|LK|AUS|NSW|33|85
+Lindsay Smith|PEN|PR|AUS|NSW|26|80
+Moses Leota|PEN|PR|NZL||32|82
+Isaiah Papali'i|PEN|LK|NZL||29|82
+Casey McLean|PEN|WG|NZL|NSW|22|80
+Paul Alamoti|PEN|CE|TGA||23|78
+Izack Tago|PEN|CE|SAM||25|80
+Delahia Wigmore|PEN|WG|COK||21|62
+Mitchell Moses|PAR|HB|AUS|NSW|33|86
+Jarome Luai|PAR|FE|SAM|NSW|30|84
+Spencer Leniu|PAR|PR|SAM|NSW|27|80
+Junior Paulo|PAR|PR|SAM||34|78
+Ronald Volkman|PAR|HB|SAM||25|70
+Luca Moretti|PAR|LK|PNG||24|70
+Kitione Kautoga|PAR|LK|FIJ||24|70
+Jordan Miller|PAR|LK|FIJ||23|64
+Stephen Crichton|CBY|CE|SAM|NSW|27|87
+Jacob Preston|CBY|LK|AUS|NSW|25|80
+Max King|CBY|PR|ENG||29|77
+Leo Thompson|CBY|PR|NZL||29|78
+Enari Tuala|CBY|WG|SAM||29|76
+Addin Fonua-Blake|CRO|PR|TGA|NSW|32|88
+Blayke Brailey|CRO|HK|AUS|NSW|29|82
+Ronaldo Mulitalo|CRO|WG|NZL|QLD|27|82
+Briton Nikora|CRO|LK|NZL|QLD|30|81
+KL Iro|CRO|CE|COK||27|81
+Keaon Koloamatangi|WOL|LK|AUS|NSW|29|84
+Valentine Holmes|WOL|CE|COK|QLD|32|82
+Kodi Nikorima|WOL|HB|NZL||33|75
+Reuben Porter|WOL|PR|COK||25|66
+Tom Trbojevic|MAN|FB|AUS|NSW|31|86
+Haumole Olakau'atu|MAN|LK|TGA|NSW|27|85
+Tolutau Koula|MAN|CE|TGA|NSW|24|80
+Taniela Paseka|MAN|PR|TGA||30|76
+Lehi Hopoate|MAN|WG|TGA||24|72
+Josh Feledy|MAN|CE|PNG||24|72
+Davvy Moale|MAN|PR|COK||25|76
+Brandon Wakeham|MAN|HB|FIJ||29|70
+Caleb Navale|MAN|WG|FIJ||23|70
+Kylan Mafoa|MAN|WG|FIJ||22|64
+Clayton Faulalo|MAN|CE|SAM||23|68
+Latrell Mitchell|RFN|CE|AUS|NSW|30|87
+Cameron Murray|RFN|LK|AUS|NSW|29|85
+David Fifita|RFN|LK|AUS|QLD|27|82
+Payne Haas|RFN|PR|SAM|NSW|28|90
+Taane Milne|RFN|CE|FIJ||32|72
+Bayleigh Bentley-Hape|RFN|CE|FIJ||23|68
+Elijah Keung|RFN|WG|FIJ||22|64
+James Tedesco|BON|FB|AUS|NSW|34|85
+Sam Walker|BON|HB|AUS|QLD|25|84
+Reece Robson|BON|HK|AUS|NSW|29|82
+Victor Radley|BON|LK|ENG||29|82
+Robert Toia|BON|CE|TGA|QLD|22|84
+Naufahu Whyte|BON|PR|NZL||25|78
+Hugo Savala|BON|HB|ENG||22|74
+Siua Wong|BON|LK|TGA||25|74
+Salesi Foketi|BON|CE|TGA||31|70
+Makahesi Makatoa|BON|PR|COK||28|74
+Benaiah Ioelu|BON|LK|SAM||21|66
+Rhys Dakin|BON|HK|COK||22|62
+Apisai Koroisau|BAL|HK|FIJ||34|80
+Sunia Turuva|BAL|FB|FIJ||24|76
+Kai Pearce-Paul|BAL|LK|ENG||26|76
+Latu Fainu|BAL|HB|TGA||23|74
+Tyson Frizell|BAL|LK|TGA|NSW|36|74
+Solomone Saukuru|BAL|WG|FIJ||25|70
+Josese Lanyon|BAL|CE|FIJ||22|63
+Glassie Glassie|BAL|WG|COK||22|64
+James Fisher-Harris|AKL|PR|NZL||31|86
+Dallin Watene-Zelezniak|AKL|WG|TGA||32|80
+Charnze Nicoll-Klokstad|AKL|FB|NZL||32|80
+Te Maire Martin|AKL|FE|NZL||31|78
+Erin Clark|AKL|LK|NZL||30|79
+Kurt Capewell|AKL|LK|AUS|QLD|34|78
+Chanel Harris-Tavita|AKL|HB|SAM||28|78
+Jacob Laban|AKL|LK|NZL||23|72
+Tanner Stowers-Smith|AKL|LK|NZL||23|72
+Demitric Vaimauga|AKL|PR|TGA||24|72
+Eddie Ieremia-Toeava|AKL|CE|SAM||24|70
+Emosi Ravosai|AKL|WG|FIJ||21|63
+Maui Winitana-Patelesio|AKL|CE|COK||21|60
+Scott Sorensen|PER|LK|NZL||34|76
+Corey Horsburgh|PER|LK|AUS|QLD|29|78
+Morgan Smithies|PER|LK|ENG||26|76
+Jack Welsby|STH|FB|ENG||26|80
+Mikey Lewis|HKR|FE|ENG||26|79
+Jez Litten|HKR|HK|ENG||29|76
+Junior Nsemba|WIG|LK|ENG||23|77
+Matty Ashton|WAR|WG|ENG||29|76
+Ben Currie|WAR|LK|ENG||33|74
+Zach Eckersley|WIG|CE|ENG||24|72
+Ethan Havard|WIG|PR|ENG||27|75
+Brad O'Neill|WIG|HK|ENG||26|72
+Harry Smith|WIG|HB|ENG||27|75
+Luke Thompson|WIG|PR|ENG||32|76
+Sam Walters|WIG|LK|ENG||25|72
+Tuimoala Lolohea|HUD|FE|TGA||32|70
+Talatau Amone|QC|FE|TGA||25|66
+Jazz Tevaga|WAK|LK|SAM||32|72
+Waqa Blake|BRA|CE|FIJ||33|70
+Semi Valemei|CAS|WG|FIJ||26|66
+Apenisa Driti|QC|WG|FIJ||24|62
+Jordan Leiu|QC|CE|FIJ||24|60
+Jimmy Ngutlik|QC|CE|FIJ||25|60
+Mitchell Prest|QC|HB|FIJ||24|60
+Edwin Ipape|LEI|HK|PNG||31|76
+Nene Macdonald|STH|WG|PNG||33|70
+Jack de Belin|O/S|LK|PNG||36|70
+Liam Horne|LEI|LK|PNG||28|64
+Bailey Biondi-Odo|QC|HB|PNG||26|64
+Finley Glare|LON|LK|PNG||24|60
+Epel Kapinias|LON|PR|PNG||26|60
+Robert Mathias|LON|CE|PNG||25|60
+Morea Morea|LON|LK|PNG||24|58
+Gairo Voro|LON|FE|PNG||24|60
+Sylvester Namo|QC|PR|PNG||26|60
+Zev John|QC|PR|PNG||30|58
+Nixon Putt|QC|LK|PNG||31|58
+Rodrick Tai|QC|FB|PNG||26|58
+Dudley Dotoi|QC|WG|PNG||24|58
+Valentine Richard|QC|WG|PNG||22|56
+Sanny Wabo|QC|CE|PNG||23|56
+Khaiya Waiembi|QC|FE|PNG||22|56
+Esan Marsters|BRA|CE|COK||31|68
+Paul Ulberg|TOU|WG|COK||32|66
+Reubenn Rennie|TOU|CE|COK||28|60
+Mason Teague|WAK|FE|COK||25|64
+Pride Petterson-Robati|QC|HK|COK||28|62
+Cameron Brown|QC|LK|COK||24|60
+Esom Ioka|QC|WG|COK||24|60
+Rua Ngatikaura|QC|HB|COK||24|58
+Brad Takairangi|QC|CE|COK||37|55`;
+const REAL_CLUB={BRI:0,RED:1,GLD:2,TSV:3,MEL:4,CAN:5,NEW:6,PEN:7,PAR:8,CBY:9,CRO:10,WOL:11,MAN:12,RFN:13,BON:14,BAL:15,AKL:16};
+function setOvr(p,t){ const w=OVR_W[p.pos]; let g=0;
+  while(ovr(p)<t&&g++<300) for(const k in w) p.r[k]=+Math.min(.97,p.r[k]+.004).toFixed(3);
+  g=0; while(ovr(p)>t&&g++<300) for(const k in w) p.r[k]=+Math.max(.2,p.r[k]-.004).toFixed(3); }
+function realRec(row){ const [name,club,pos,nat,origin,age,o]=row.split('|'), t=+o;
+  const p=mkPlayerRec(pos,clamp(t/100-.07,.35,.88),null,null,[+age,+age]);
+  p.id='r_'+name.toLowerCase().replace(/[^a-z]/g,''); p.name=name; p.nat=nat; p.origin=origin||null; p.real=true;
+  setOvr(p,t); delete p.tr; giveTraits(p); p.potO=null; setPot(p); p.xp=0;
+  p.con={yrs:2+Math.floor(rnd()*3),sal:0}; p.con.sal=askSalary(p); p.st=blankSt(); p.inj=0; p.yrsAt=1+Math.floor(rnd()*4);
+  const ci=REAL_CLUB[club]; if(ci==null) p.osClub=club; return {p,ci:ci==null?-1:ci}; }
+const REAL_NEED={FB:1,WG:2,CE:1,FE:1,HB:1,PR:1,HK:1,LK:1};
+// who a real player replaces: the weakest made-up player in his position; otherwise he's added if there's room,
+// or replaces the weakest made-up player in a position the club has spare
+function realTarget(cl,pos){ const fake=cl.players.filter(q=>!q.real&&!q.legend&&!q.prospect&&!q.goat), lo=(a,b)=>ovr(a)-ovr(b);
+  let t=fake.filter(q=>q.pos===pos).sort(lo)[0]; if(t) return t; if(cl.players.length<16) return null;
+  const cnt=ps=>cl.players.filter(q=>q.pos===ps).length;
+  return fake.filter(q=>cnt(q.pos)>(REAL_NEED[q.pos]||1)).sort(lo)[0]||fake.sort(lo)[0]||cl.players.filter(q=>!q.real).sort(lo)[0]; }
+// real players agree to fit under the cap: if a club is over, their wages come down (to no less than 40% of the asking price)
+function fitCap(cl,cap){ const pay=payroll(cl); if(pay<=cap*.98) return; const reals=cl.players.filter(p=>p.real&&!p.junior); const rs=reals.reduce((s,p)=>s+p.con.sal,0); if(!rs) return;
+  const f=Math.max(.4,(rs-(pay-cap*.98))/rs); for(const p of reals) p.con.sal=Math.max(40,Math.round(p.con.sal*f/5)*5); }
+function ensureReal(L){ if(L.real27) return false; const c=L.career, mine=c?c.club:-1, have=new Set(), toMine=[];
+  for(const cl of L.clubs) for(const p of cl.players) have.add(p.id);
+  L.overseas=[]; const out=[];
+  for(const row of REAL27.trim().split('\n')){ const {p,ci}=realRec(row.trim()); if(have.has(p.id)) continue;
+    if(ci<0){ L.overseas.push(p); continue; } if(ci===mine){ toMine.push(p); continue; }
+    const cl=L.clubs[ci], t=realTarget(cl,p.pos); if(t){ cl.players[cl.players.indexOf(t)]=p; out.push(t); } else cl.players.push(p); cl.lineup=null; }
+  if(c){ L.clubs.forEach((cl,i)=>{ if(i!==mine) fitCap(cl,c.cap); });
+    c.market=c.market||[]; for(const p of out.slice(0,12)){ p.con={yrs:0,sal:askSalary(p)}; c.market.push(p); }
+    if(toMine.length) c.realPick={inc:toMine}; c.repSel={}; }
+  L.natBase={}; L.real27=true; return true; }
+// overseas players age, fade and retire like everyone else
+function ageOverseas(){ const L=LEAGUE; if(!L.overseas) return;
+  for(const p of [...L.overseas]){ p.age++; const a=p.age;
+    if(a<=23) levelUp(p,1);
+    if(a>=29){ for(const k in p.r){ let d=a<=31?-(rnd()*.02):-(.01+rnd()*.03); if(k==='spd') d-=.01; p.r[k]=+clamp(p.r[k]+d,.2,.97).toFixed(3); } }
+    if(a>=34||(a>=32&&rnd()<.35)) L.overseas.splice(L.overseas.indexOf(p),1); else { p.st=blankSt(); p.inj=0; } } }
 function ensureAway(L){ if(L.away1) return false; L.clubs.forEach((cl,i)=>{ if(!cl.a1) setAway(cl,i); }); L.away1=true; return true; }
 // kit colours before version 20, so saved clubs still on them get the new kits
 const OLD_KITS=[['#127c7c','#f2c14e','#0b3d3d','band'],['#57b6e6','#c62f2f','#123a52','v'],['#e8c766','#1d3557','#1d3557','hoops'],['#1f6b45','#f2b632','#0e3322','v'],['#2e3440','#ef7d32','#151820','band'],['#1e2f6b','#a6d608','#101a3d','hoops'],['#e56b1f','#f4f4f4','#3a1a08','v'],['#5b2a86','#f3f3f3','#2a123f','band'],['#7a1e2e','#8ec9ef','#3d0e17','hoops'],['#2a8c4a','#f1f1f1','#123d20','v'],['#1a1a1a','#e2b13c','#0d0d0d','band'],['#1f55c7','#f2f2f2','#0e2a66','v'],['#c8102e','#141414','#141414','hoops'],['#f2f2f2','#6a2c91','#6a2c91','band'],['#f3d02a','#161616','#161616','v'],['#6b3f24','#f08a24','#2e1a0e','band'],['#121212','#23b5b0','#0b0b0b','hoops']];
@@ -764,7 +1002,7 @@ function benchOf(cl,starters){ const ids=new Set(starters.map(p=>p.id)); const r
   const bench=[...F.slice(0,3),...B.slice(0,1)]; for(const p of rest) if(bench.length<4&&!bench.includes(p)) bench.push(p); return bench.slice(0,4); }
 function sideFromClub(cl,kit){ const st=lineupOf(cl), K=kitOf(cl,kit); return {id:cl.id,name:cl.name,abbr:cl.abbr,c1:K.c1,c2:K.c2,c3:K.c3,pat:K.pat,kit:kit||'home',style:cl.style,rating:cl.rating,starters:st,bench:benchOf(cl,st)}; }
 let LEAGUE=null; const SAVE={ref:null,t:0,cloud:false};
-function loadLeague(){ let L=store.get('league',null), fresh=false; if(!L||L.v!==2||!Array.isArray(L.clubs)||L.clubs.length!==CLUBS.length){ L=genLeague(); fresh=true; } LEAGUE=L; const m1=ensureStars(L), m2=ensureLegends(L), m3=ensureKits(L), m4=ensurePotential(L), m5=ensureAway(L), m6=ensureNats(L), m7=ensureOrigins(L); if(m1||m2||m3||m4||m5||m6||m7||fresh){ L.at=Date.now(); store.set('league',L); } }
+function loadLeague(){ let L=store.get('league',null), fresh=false; if(!L||L.v!==2||!Array.isArray(L.clubs)||L.clubs.length!==CLUBS.length){ L=genLeague(); fresh=true; } LEAGUE=L; const m1=ensureStars(L), m2=ensureLegends(L), m3=ensureKits(L), m4=ensurePotential(L), m5=ensureAway(L), m6=ensureNats(L), m7=ensureOrigins(L), m8=ensureReal(L); if(m1||m2||m3||m4||m5||m6||m7||m8||fresh){ L.at=Date.now(); store.set('league',L); } }
 function saveLeague(){
   LEAGUE.at=Date.now(); store.set('league',LEAGUE);
   clearTimeout(SAVE.t); SAVE.t=setTimeout(()=>{ if(SAVE.ref) SAVE.ref.set({league:JSON.parse(JSON.stringify(LEAGUE)),at:LEAGUE.at}).then(()=>{ SAVE.cloud=true; syncSaveNote(); }).catch(()=>{}); },700);
@@ -776,7 +1014,7 @@ async function initCloud(){
     const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]); if(!db||!user) return;
     const uid=await user.id(); if(!uid) return;
     const ref=db.doc('data/users/'+uid+'/league'); const snap=await ref.get(); SAVE.ref=ref; syncSaveNote();
-    if(snap.exists){ const d=snap.data(); if(d&&d.league&&d.league.v===2&&d.league.clubs&&(d.at||0)>(LEAGUE.at||0)){ LEAGUE=JSON.parse(JSON.stringify(d.league)); const m1=ensureStars(LEAGUE), m2=ensureLegends(LEAGUE), m3=ensureKits(LEAGUE), m4=ensurePotential(LEAGUE), m5=ensureAway(LEAGUE), m6=ensureNats(LEAGUE), m7=ensureOrigins(LEAGUE); if(m1||m2||m3||m4||m5||m6||m7) saveLeague(); else store.set('league',LEAGUE); onLeagueChanged(); }
+    if(snap.exists){ const d=snap.data(); if(d&&d.league&&d.league.v===2&&d.league.clubs&&(d.at||0)>(LEAGUE.at||0)){ LEAGUE=JSON.parse(JSON.stringify(d.league)); const m1=ensureStars(LEAGUE), m2=ensureLegends(LEAGUE), m3=ensureKits(LEAGUE), m4=ensurePotential(LEAGUE), m5=ensureAway(LEAGUE), m6=ensureNats(LEAGUE), m7=ensureOrigins(LEAGUE), m8=ensureReal(LEAGUE); if(m1||m2||m3||m4||m5||m6||m7||m8) saveLeague(); else store.set('league',LEAGUE); onLeagueChanged(); }
       else if((d.at||0)<(LEAGUE.at||0)) saveLeague(); }
     else saveLeague();
     const mref=db.doc('data/users/'+uid+'/match'); MSAVE.ref=mref; const ms=await mref.get();
@@ -2380,7 +2618,7 @@ $('bkRestore').onclick=async()=>{ bkMsg(''); try{ bkPending=await readCode($('bk
 $('bkNo').onclick=()=>{ bkPending=null; $('bkConfirm').hidden=true; };
 $('bkYes').onclick=()=>{ const d=bkPending; if(!d) return; bkPending=null; $('bkConfirm').hidden=true;
   LEAGUE=d.league; const st=d.settings||{}; if(st.diff){ DIFF=st.diff; store.set('diff',DIFF); } if(st.adapt!=null){ ADAPT=st.adapt; store.set('adapt',ADAPT); } if(st.len){ len=st.len; store.set('len',len); } if(st.you!=null){ youI=st.you; store.set('you',youI); }
-  ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); ensurePotential(LEAGUE); ensureAway(LEAGUE); ensureNats(LEAGUE); ensureOrigins(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
+  ensureStars(LEAGUE); ensureLegends(LEAGUE); ensureKits(LEAGUE); ensurePotential(LEAGUE); ensureAway(LEAGUE); ensureNats(LEAGUE); ensureOrigins(LEAGUE); ensureReal(LEAGUE); saveLeague(); clearMatchSave(); syncMenu(); syncDiff(); drawHomeKits();
   const c=LEAGUE.career; bkMsg('Restored. '+(c?'Your career with '+LEAGUE.clubs[c.club].name+' (season '+c.season+') is ready under CAREER.':'Your clubs and players are back.')); openBackupOut(); };
 async function openBackupOut(){ try{ $('bkOut').value=await makeCode(); }catch(e){} }
 function syncTutBtn(){ const done=store.get('tutDone',false); const b=$('hTut'); b.className='pxbtn '+(done?'ghost':'big'); b.innerHTML=done?'TUTORIAL':'TUTORIAL<small>ABOUT 4 MIN</small>'; }
@@ -2856,7 +3094,7 @@ function aiFill(cl){ const M=mkt(); while(cl.players.length<SQUAD_MIN){ const ne
     cand.con={yrs:1+Math.floor(rnd()*4),sal:askSalary(cand)}; cl.players.push(cand); } }
 function offNext(){
   const c=C(), o=c.off;
-  if(o.step==='review'){ c.offers=(c.offers||[]).filter(x=>x.k!=='club'); aiApproaches(false); resolvePending(); const retired=ageAndProgress(); c.dead=(c.dead||[]).map(d=>({...d,yrs:d.yrs-1})).filter(d=>d.yrs>0); executeAgreed(); mkt().push(...aiContracts()); o.step='contracts'; newsAdd('New off-season. '+retired.length+' players retired across the league.'); }
+  if(o.step==='review'){ c.offers=(c.offers||[]).filter(x=>x.k!=='club'); aiApproaches(false); resolvePending(); const retired=ageAndProgress(); ageOverseas(); c.dead=(c.dead||[]).map(d=>({...d,yrs:d.yrs-1})).filter(d=>d.yrs>0); executeAgreed(); mkt().push(...aiContracts()); o.step='contracts'; newsAdd('New off-season. '+retired.length+' players retired across the league.'); }
   else if(o.step==='contracts'){ const mine=myClub(); for(const p of [...mine.players]) if(p.con.yrs<=0){ mine.players.splice(mine.players.indexOf(p),1); p.con={yrs:0,sal:askSalary(p)}; mkt().push(p); newsAdd(p.name+' left the club and is on the open market.'); }
     const lad=ladder().map(r=>r.i).reverse(); if(c.finals&&c.finals.champ!=null){ const ch=c.finals.champ; lad.splice(lad.indexOf(ch),1); lad.push(ch); }
     o.draft={pool:[...Array(clubs().length*2+6)].map(genRookie).sort((a,b)=>playerValue(b)-playerValue(a)),order:[...lad,...lad],pick:0};
@@ -2913,7 +3151,47 @@ function renderHub(){
   const T=$('chTabs'); T.innerHTML=''; for(const [id,lab] of tabsFor()){ const b=document.createElement('button'); b.type='button'; b.textContent=lab; b.className=hubTab===id?'on':''; b.setAttribute('role','tab'); b.onclick=()=>{ hubTab=id; hubNote=null; renderHub(); }; T.appendChild(b); }
   const B=$('chBody'); B.innerHTML='';
   if(hubNote){ const m=document.createElement('div'); m.className='msg'+(hubNote.bad?' bad':''); m.textContent=hubNote.t; B.appendChild(m); }
+  if(c.realPick){ hubRealPick(B); return; }
   ({next:hubNext,ladder:hubLadder,squad:hubSquad,club:hubClubTab,contracts:hubContracts,market:hubMarket,rep:hubRep,stats:hubStats,news:hubNews})[hubTab](B);
+}
+// real players joining your club: you choose who stays. The best of your squad is ticked to start with.
+function hubRealPick(B){
+  const c=C(), cl=myClub(), R=c.realPick, byOvr=(a,b)=>ovr(b)-ovr(a);
+  if(!R.keep){ const room=Math.max(0,SQUAD_MAX-R.inc.length);
+    R.take=R.inc.map(p=>p.id); const k=[];
+    // cover every starting position first, then the best of the rest
+    for(const [ps,nd] of Object.entries(REAL_NEED)){ const have=R.inc.filter(p=>p.pos===ps).length; k.push(...cl.players.filter(p=>p.pos===ps).sort(byOvr).slice(0,Math.max(0,nd-have))); }
+    for(const p of [...cl.players].sort(byOvr)) if(k.length<room&&!k.includes(p)) k.push(p);
+    R.keep=k.slice(0,Math.max(room,0)).map(p=>p.id); }
+  const take=new Set(R.take), keep=new Set(R.keep);
+  const squad=[...R.inc.filter(p=>take.has(p.id)),...cl.players.filter(p=>keep.has(p.id))], n=squad.length;
+  const reals=squad.filter(p=>p.real), pay0=squad.reduce((s,p)=>s+(p.junior?0:p.con.sal),0)+(c.dead||[]).reduce((a,d)=>a+d.sal,0);
+  const rs=reals.reduce((s,p)=>s+p.con.sal,0), f=pay0>c.cap*.98&&rs?Math.max(.4,(rs-(pay0-c.cap*.98))/rs):1;
+  const pay=pay0-rs+reals.reduce((s,p)=>s+Math.max(40,Math.round(p.con.sal*f/5)*5),0);
+  const cnt={}; for(const p of squad) cnt[p.pos]=(cnt[p.pos]||0)+1;
+  const miss=Object.keys(REAL_NEED).filter(ps=>!cnt[ps]);
+  B.appendChild(el(`<div class="card2"><p class="big2">REAL PLAYERS ARE JOINING ${esc(cl.name.toUpperCase())}</p><p>The game now has real 2027 players. ${R.inc.length} of them play for your club. Pick who stays: tap a player to keep him or let him go. Anyone you let go goes to the open market, and you owe him nothing.</p><p style="color:var(--muted)">Your best players are ticked to start with, up to a full squad. Your squad needs ${SQUAD_MIN} to ${SQUAD_MAX} players.</p></div>`));
+  const table=(title,list,set,isNew)=>{ B.appendChild(el(`<p class="lbl" style="margin-top:10px">${title}</p>`));
+    const tb=document.createElement('table'); tb.className='repT choose rpk'; tb.innerHTML='<tr><th></th><th class="l">PLAYER</th><th>PLAYS</th><th>AGE</th><th>RATING</th></tr>';
+    for(const p of [...list].sort(byOvr)){ const on=set.has(p.id), tr=document.createElement('tr'); if(!on) tr.className='off';
+      tr.innerHTML=`<td class="tk">${on?(isNew?'✓ JOIN':'✓ KEEP'):'✗ GO'}</td><td class="l nm"></td><td>${POSNAME[p.pos].toUpperCase()}</td><td>${p.age}</td><td class="stars">${rateHtml(p)}</td>`;
+      nameCell(tr.querySelector('.nm'),p,p.real&&p.nat!=='AUS'?REP_TEAMS[p.nat].name:'');
+      tr.onclick=()=>{ const a=isNew?R.take:R.keep, i=a.indexOf(p.id); if(i>=0) a.splice(i,1); else a.push(p.id); saveLeague(); renderHub(); }; tb.appendChild(tr); }
+    const w=el('<div class="tblwrap"></div>'); w.appendChild(tb); B.appendChild(w); };
+  table('JOINING YOUR CLUB · '+R.take.length+' OF '+R.inc.length,R.inc,take,true);
+  table('YOUR SQUAD · KEEPING '+keep.size+' OF '+cl.players.length,cl.players,keep,false);
+  const ok=n>=SQUAD_MIN&&n<=SQUAD_MAX;
+  const msg=!ok?(n<SQUAD_MIN?'Keep at least '+SQUAD_MIN+' players. You have '+n+'.':'Keep no more than '+SQUAD_MAX+' players. You have '+n+'.'):miss.length?'Nobody in your squad plays '+miss.map(ps=>POSNAME[ps].toLowerCase()).join(', ')+'. Someone will have to play out of position.':'';
+  const card=el(`<div class="card2" style="margin-top:10px"><p class="lbl">NEW SQUAD · ${n} PLAYERS · PAYROLL ${money(pay)} OF ${money(c.cap)}${f<1?' · THE REAL PLAYERS TOOK LESS TO FIT UNDER YOUR CAP':''}</p>${msg?`<div class="msg${ok?'':' bad'}"></div>`:''}<div class="row"><span class="grow"></span><button class="pxbtn big" type="button" id="rpGo">CONFIRM SQUAD</button></div></div>`);
+  if(msg) card.querySelector('.msg').textContent=msg;
+  const go=card.querySelector('#rpGo'); go.disabled=!ok;
+  go.onclick=()=>{ if(!ok) return; const M=mkt(), gone=[];
+    for(const p of [...cl.players]) if(!keep.has(p.id)){ cl.players.splice(cl.players.indexOf(p),1); if(!p.junior){ p.con={yrs:0,sal:askSalary(p)}; delete p.agreed; delete p.approach; M.push(p); } gone.push(p.name); }
+    for(const p of R.inc){ if(take.has(p.id)){ cl.players.push(p); p.yrsAt=0; } else { p.con={yrs:0,sal:askSalary(p)}; M.push(p); gone.push(p.name); } }
+    fitCap(cl,c.cap); cl.lineup=null; c.repSel={};
+    newsAdd('Real players joined '+cl.name+': '+R.inc.filter(p=>take.has(p.id)).map(p=>p.name).join(', ')+'.'+(gone.length?' Let go: '+gone.join(', ')+'.':''));
+    delete c.realPick; saveLeague(); hubTab='squad'; renderHub(); };
+  B.appendChild(card);
 }
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstElementChild; }
 function hubNext(B){
@@ -3199,7 +3477,7 @@ $('chNew').onclick=()=>{
   const B=$('chBody'); $('chTabs').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
   B.innerHTML=''; B.appendChild(el(`<div class="card2"><p class="big2">START A NEW CAREER?</p><p>Your current career with ${esc(myClub().name)} (season ${c.season}, ${c.year}) will be deleted. Your club names, kits and player names stay.</p><p style="color:var(--muted)">Keep these squads: every club starts with the players it has now, including anyone signed or drafted. Fresh squads: every club gets a brand new squad, with new five-star players and legends.</p><div class="row" id="ncBtns"></div></div>`));
   const go=fresh=>{ const S0=savedMatch(); if(S0&&S0.ctx) clearMatchSave();
-    if(fresh){ clubs().forEach((cl,i)=>{ const g=genClub(i); cl.players=g.players; cl.lineup=null; }); LEAGUE.legends4=false; ensureLegends(LEAGUE); }
+    if(fresh){ clubs().forEach((cl,i)=>{ const g=genClub(i); cl.players=g.players; cl.lineup=null; }); LEAGUE.legends4=false; ensureLegends(LEAGUE); LEAGUE.career=null; LEAGUE.real27=false; ensureReal(LEAGUE); }
     for(const cl of clubs()){ cl.lineup=null; for(const p of cl.players){ p.inj=0; delete p.car; } }
     LEAGUE.career=null; saveLeague(); renderNewCareer(); };
   const mk=(t,cls,f)=>{ const b=document.createElement('button'); b.type='button'; b.className='pxbtn'+cls; b.textContent=t; b.onclick=f; $('ncBtns').appendChild(b); };
@@ -3229,7 +3507,9 @@ function ensureCareer(){ const c=C(); c.market=c.market||[]; if(c.off&&c.off.fa)
   if(!c.persV){ for(const cl of clubs()) for(const p of cl.players){ giveTraits(p); if(p.yrsAt==null) p.yrsAt=1+Math.floor(rnd()*4); } for(const p of c.market) giveTraits(p); if(c.off&&c.off.draft) for(const p of c.off.draft.pool) giveTraits(p);
     c.staff.rec=c.staff.rec||1; c.pending=[]; c.dead=[]; c.persV=1; newsAdd('New: players now have personalities. They can turn you down, rival clubs bid against you, and players in the last year of a deal can be approached for next season.'); saveLeague(); } }
 function allPlayers(){ const out=[]; clubs().forEach((cl,ci)=>{ for(const p of cl.players) out.push({p,ci}); }); return out; }
-function eligibleFor(key){ const st=key==='QLD'||key==='NSW'; return allPlayers().filter(({p})=>!p.inj&&(st?p.origin===key:p.nat===key)); }
+function repPool(){ const out=allPlayers(); for(const p of (LEAGUE.overseas||[])) out.push({p,ci:-1}); return out; }
+function abbrAt(x){ return x.ci<0?(x.p.osClub||'O/S'):clubs()[x.ci].abbr; }
+function eligibleFor(key){ const st=key==='QLD'||key==='NSW'; return repPool().filter(({p})=>!p.inj&&(st?p.origin===key:p.nat===key)); }
 function padPlayer(key,pos,i){ const p=mkPlayerRec(pos,.5,null,null,[22,30]); p.id='pad_'+key+'_'+pos+'_'+i; p.nat=key; p.pad=true; return p; }
 function autoPickIds(key){
   const pool=eligibleFor(key).map(x=>x.p), used=new Set(), ids=[];
@@ -3239,7 +3519,7 @@ function autoPickIds(key){
   return [...ids,...bench];
 }
 function repSide(key,useSel){
-  const c=C(), byId={}; for(const {p} of allPlayers()) byId[p.id]=p;
+  const c=C(), byId={}; for(const {p} of repPool()) byId[p.id]=p;
   let ids=(useSel&&c&&c.repSel&&c.repSel[key]&&c.repSel[key].length===13)?c.repSel[key]:autoPickIds(key);
   const used=new Set(); const recs=ids.map((id,i)=>{ let p=id&&byId[id]; if(p&&(used.has(p.id)||p.inj)) p=null; if(p){ used.add(p.id); return p; } const pos=i<9?ORDER[i][0]:BENCH[i-9]; return padPlayer(key,pos,i); });
   const T=REP_TEAMS[key], starters=recs.slice(0,9), bench=recs.slice(9,13);
@@ -3398,7 +3678,7 @@ function renderRepPicker(B,key){
   REP_SLOTS.forEach((lab,k)=>{ const x=sel[k]&&byId[sel[k]], tr=document.createElement('tr'); if(k===9) tr.className='gap';
     const want=k<9?ORDER[k][0]:null;
     if(x){ const p=x.p, oop=want&&p.pos!==want;
-      tr.innerHTML=`<td class="spot">${lab.toUpperCase()}</td><td class="l nm"></td><td>${esc(clubs()[x.ci].abbr)}</td><td class="${oop?'oopT':''}">${POSNAME[p.pos].toUpperCase()}</td><td class="stars">${rateHtml(p)}</td><td class="form">${formStr(p)}</td><td></td>`;
+      tr.innerHTML=`<td class="spot">${lab.toUpperCase()}</td><td class="l nm"></td><td>${esc(abbrAt(x))}</td><td class="${oop?'oopT':''}">${POSNAME[p.pos].toUpperCase()}</td><td class="stars">${rateHtml(p)}</td><td class="form">${formStr(p)}</td><td></td>`;
       tr.querySelector('.nm').textContent=nameTag(p); }
     else tr.innerHTML=`<td class="spot">${lab.toUpperCase()}</td><td class="l nm" style="color:var(--muted)">Overseas player</td><td>–</td><td>–</td><td>–</td><td>–</td><td></td>`;
     const bt=document.createElement('button'); bt.type='button'; bt.className='pxbtn sm'; bt.textContent='CHANGE'; bt.onclick=()=>openRepPick(key,k); tr.lastElementChild.appendChild(bt); tb.appendChild(tr); });
@@ -3416,7 +3696,7 @@ function openRepPick(key,k){
   const close=()=>ov.remove();
   const choose=id=>{ const other=id?sel.indexOf(id):-1; if(other>=0&&other!==k) sel[other]=sel[k]; sel[k]=id; saveLeague(); close(); renderHub(); };
   for(const {p,ci} of list){ const tr=document.createElement('tr'), at=sel.indexOf(p.id); if(at===k) tr.className='me';
-    tr.innerHTML=`<td class="l nm"></td><td>${esc(clubs()[ci].abbr)}</td><td class="${fit(p)?'':'oopT'}">${POSNAME[p.pos].toUpperCase()}</td><td class="stars">${rateHtml(p)}</td><td class="form">${formStr(p)}</td><td class="tagc">${at===k?'PICKED':at>=0?'IN SQUAD · '+esc(REP_SLOTS[at].toUpperCase()):''}</td>`;
+    tr.innerHTML=`<td class="l nm"></td><td>${esc(abbrAt({p,ci}))}</td><td class="${fit(p)?'':'oopT'}">${POSNAME[p.pos].toUpperCase()}</td><td class="stars">${rateHtml(p)}</td><td class="form">${formStr(p)}</td><td class="tagc">${at===k?'PICKED':at>=0?'IN SQUAD · '+esc(REP_SLOTS[at].toUpperCase()):''}</td>`;
     tr.querySelector('.nm').textContent=nameTag(p); tr.onclick=()=>choose(p.id); tb.appendChild(tr); }
   const tr=document.createElement('tr'); tr.innerHTML='<td class="l nm" style="color:var(--muted)">Overseas player</td><td>–</td><td>–</td><td>–</td><td>–</td><td></td>'; tr.onclick=()=>choose(null); tb.appendChild(tr);
   ov.querySelector('#rpClose').onclick=close; ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
