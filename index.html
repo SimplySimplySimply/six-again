@@ -1109,17 +1109,25 @@ function attackShape(x,y,d,dh,tackled,mode){
   G.ptb.mode=mode;
 }
 function blindSpread(x,y,d,dh,tackled,A,open,ow,bw,shape){
-  // a wide blind side shouldn't leave the winger stranded on the touchline: bring him in a little, spread an edge forward out towards him,
-  // and on a really wide blind side bring the centre across too
+  // a wide blind side shouldn't leave the winger stranded: bring him in off the touchline and put a back in the gap.
+  // The fullback joins the line on a medium blind side; on a really wide one the centre goes there and the fullback stays open.
+  // A back only goes across if the open side keeps enough backs to cover it, and the open-side backs then spread out evenly
   if(bw<9) return;
-  const free=p=>p&&!p.off&&p!==dh&&p!==tackled&&!(p.pod>=0), blind=p=>(p.lane-x)*open<0, edge=open>0?0:FW;
-  const set=(p,dx,dep,run)=>{ p.lane=clamp(x+open*dx,2,FW-2); p.depth=dep; p.depth0=dep; p.run=run; p.front=p.back=false; p.ang=run===1?-open*(.3+rnd()*.5):0; p.tx=p.lane; p.ty=clampY(y-d*dep); };
-  const wgD=Math.min(bw-3,Math.max(8,bw*.72)), edgeD=Math.min(Math.max(3.5,bw*.33),7);
+  const free=p=>p&&!p.off&&p!==dh&&p!==tackled&&!(p.pod>=0), blind=p=>(p.lane-x)*open<0, edge=open>0?0:FW, BACKS=['HB','FE','CE','FB','WG'];
+  const set=(p,dx,dep,run)=>{ p.lane=clamp(x+open*dx,2,FW-2); p.depth=dep; p.depth0=dep; p.run=run; p.front=p.back=false; p.ang=0; p.tx=p.lane; p.ty=clampY(y-d*dep); };
+  const wgD=Math.min(bw-3,Math.max(8,bw*.72));
   const wg=A.filter(p=>p.pos==='WG'&&free(p)&&blind(p)).sort((p,q)=>Math.abs(p.lane-edge)-Math.abs(q.lane-edge))[0];
   if(wg) set(wg,-wgD,3.5,0);
-  const fwd=A.filter(p=>free(p)&&blind(p)&&['LK','PR','HK'].includes(p.pos)).sort((p,q)=>Math.abs(q.lane-x)-Math.abs(p.lane-x))[0];
-  if(fwd) set(fwd,-edgeD,2.8,1);
-  if(!shape&&bw>=18){ const ce=A.find(p=>p.pos==='CE'&&free(p)); if(ce){ set(ce,-(wgD+edgeD)/2,5,0); const fb=A.find(p=>p.pos==='FB'&&free(p)); if(fb) set(fb,Math.max(16,ow*.66),6.6,0); } }
+  if(bw<12) return;
+  const openBacks=()=>A.filter(p=>free(p)&&!blind(p)&&BACKS.includes(p.pos));
+  const pref=bw>=18?['CE','FB']:['FB','CE'], back=pref.map(k=>A.find(p=>p.pos===k&&free(p)&&!blind(p))).find(Boolean);
+  if(!back||openBacks().length-1<Math.ceil(ow/14)) return;
+  const fwd=A.filter(p=>free(p)&&blind(p)&&p!==wg&&!BACKS.includes(p.pos)).map(p=>Math.abs(p.lane-x)).sort((a,b)=>b-a)[0]||2.5;
+  set(back,-(fwd+wgD)/2,back.pos==='FB'?5:4.5,0);
+  if(shape) return;
+  const ob=openBacks().sort((p,q)=>Math.abs(p.lane-x)-Math.abs(q.lane-x)); if(ob.length<3) return;
+  const d0=Math.abs(ob[0].lane-x), dn=Math.abs(ob[ob.length-1].lane-x);
+  ob.forEach((p,k)=>{ if(k===0||k===ob.length-1) return; const dx=d0+(dn-d0)*k/(ob.length-1); p.lane=clamp(x+open*dx,2,FW-2); p.tx=p.lane; });
 }
 function shapePods(x,y,d,dh,tackled,A,open,ow,bw){
   // pod 1: first receiver (halfback first choice), front-door forward, back-door back; pod 2 further out when there's room
